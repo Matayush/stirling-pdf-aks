@@ -14,7 +14,7 @@ variable "prefix" {
   default     = "stirling"
 }
 
-#variable "environment" {
-#  type        = string
-#  description = "Deployment environment (dev, test, prod)"
-#}
+variable "environment" {
+  type        = string
+  description = "Environment name (e.g., dev, test, prod)"
+}

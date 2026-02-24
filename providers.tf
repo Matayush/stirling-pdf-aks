@@ -11,7 +11,7 @@ terraform {
     organization = "ceniuk-mateusz-org"
 
     workspaces {
-      name = "stirling-dev"
+      name = "stirling-pdf-dev"
     }
   }
 }
