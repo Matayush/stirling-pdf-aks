@@ -7,11 +7,11 @@ terraform {
     }
   }
 
- backend "azurerm" {
+  backend "azurerm" {
     resource_group_name  = "rg-tfstate-shared"
     storage_account_name = "stirlingtfstate"
     container_name       = "storiling-tfstate"
-    key                  = "stirling-pdf-dev.tfstate"
+    key                  = var.backend_key
   }
 }
 
