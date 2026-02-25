@@ -7,13 +7,13 @@ terraform {
     }
   }
 
-#  cloud {
-#    organization = "ceniuk-mateusz-org"
-#
-#    workspaces {
-#      name = "stirling-pdf-prod"
-#    }
-#  }
+  #  cloud {
+  #    organization = "ceniuk-mateusz-org"
+  #
+  #    workspaces {
+  #      name = "stirling-pdf-prod"
+  #    }
+  #  }
 }
 
 provider "azurerm" {
