@@ -10,8 +10,8 @@ terraform {
   backend "azurerm" {
     resource_group_name  = "rg-tfstate-shared"
     storage_account_name = "stirlingtfstate"
-    container_name       = "storiling-tfstate"
-    key                  = var.backend_key
+    container_name       = "stiriling-tfstate"
+ #   key                  = var.backend_key
   }
 }
 
