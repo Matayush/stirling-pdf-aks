@@ -4,9 +4,13 @@ on:
   push:
     branches:
     - main
+    - dev
+    - test
   pull_request:
     branches:
     - main
+    - dev
+    - test
 
 #Special permissions required for OIDC authentication
 permissions:
@@ -41,7 +45,18 @@ jobs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_wrapper: false
-
+    # Selects the correct Terraform state file based on the branch that triggered the workflow. 
+    # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
+    - name: Set backend key
+      id: backend
+      run: |
+        if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT
+         elif [[ "${GITHUB_REF##*/}" == "test" ]]; then
+          echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT
+        else
+          echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT
+        fi
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init
