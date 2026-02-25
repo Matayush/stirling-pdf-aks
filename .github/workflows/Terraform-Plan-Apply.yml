@@ -45,6 +45,7 @@ jobs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_wrapper: false
+        
     # Selects the correct Terraform state file based on the branch that triggered the workflow. 
     # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
     - name: Set backend key
