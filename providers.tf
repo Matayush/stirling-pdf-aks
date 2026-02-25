@@ -14,7 +14,7 @@ terraform {
 #      name = "stirling-pdf-prod"
 #    }
 #  }
-#}
+}
 
 provider "azurerm" {
   #subscription_id = var.subscription_id # Read from environment variable or directly from Terraform Cloud
