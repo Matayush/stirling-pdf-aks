@@ -3,15 +3,10 @@ name: 'Terraform Plan/Apply'
 on:
   push:
     branches:
-    - main
     - dev
-    - test
   pull_request:
     branches:
-    - main
     - dev
-    - test
-
 #Special permissions required for OIDC authentication
 permissions:
   id-token: write
@@ -29,11 +24,13 @@ jobs:
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
+    environment: production
     env:
       #this is needed since we are running terraform with read-only permissions
       ARM_SKIP_PROVIDER_REGISTRATION: true
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
+      backendKey: ${{ steps.backend.outputs.key }}
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -73,7 +70,10 @@ jobs:
       id: tf-plan
       run: |
         export exitcode=0
-        terraform plan -detailed-exitcode -no-color -out tfplan || export exitcode=$?
+        terraform plan \
+          -var "location=${{ vars.location }}" \
+          -var "resource_group_name=${{ vars.resource_group }}" \
+          -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
         
@@ -150,7 +150,7 @@ jobs:
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
-      run: terraform init
+      run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.backendKey }}"
 
     # Download saved plan from artifacts  
     - name: Download Terraform Plan
