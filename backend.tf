@@ -10,8 +10,7 @@ terraform {
  backend "azurerm" {
     resource_group_name  = "rg-tfstate-shared"
     storage_account_name = "stirlingtfstate"
-    container_name       = "storiling-tfstate"
-    key                  = "stirling-pdf-test.tfstate"
+    container_name       = "stiriling-tfstate"
   }
 }
 
