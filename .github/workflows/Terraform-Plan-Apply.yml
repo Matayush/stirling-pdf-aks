@@ -25,10 +25,12 @@ jobs:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
     environment: production
+    env:
       #this is needed since we are running terraform with read-only permissions
       ARM_SKIP_PROVIDER_REGISTRATION: true
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
+      backendKey: ${{ steps.backend.outputs.key }}
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -70,7 +72,7 @@ jobs:
         export exitcode=0
         terraform plan \
           -var "location=${{ vars.location }}" \
-          -var "resource-group=${{ vars.resource_group }}" \
+          -var "resource_group_name=${{ vars.resource_group }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
@@ -148,7 +150,7 @@ jobs:
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
-      run: terraform init
+      run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.backendKey }}"
 
     # Download saved plan from artifacts  
     - name: Download Terraform Plan
@@ -158,7 +160,4 @@ jobs:
 
     # Terraform Apply
     - name: Terraform Apply
-      run: terraform apply -auto-approve \
-        -var "location=${{ vars.location }}" \
-        -var "resource_group=${{ vars.resource_group }}" \
-        tfplan
+      run: terraform apply -auto-approve tfplan
