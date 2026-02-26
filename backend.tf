@@ -11,10 +11,6 @@ terraform {
     resource_group_name  = "rg-tfstate-shared"
     storage_account_name = "stirlingtfstate"
     container_name       = "stiriling-tfstate"
-<<<<<<< HEAD
-=======
- #   key                  = var.backend_key
->>>>>>> 55fa05b9d4155e6597b4aa92d5a094694936a519
   }
 }
 
