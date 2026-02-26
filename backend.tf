@@ -10,7 +10,7 @@ terraform {
   backend "azurerm" {
     resource_group_name  = "rg-tfstate-shared"
     storage_account_name = "stirlingtfstate"
-    container_name       = "stiriling-tfstate"
+    container_name       = "stirling-tfstate"
   }
 }
 
