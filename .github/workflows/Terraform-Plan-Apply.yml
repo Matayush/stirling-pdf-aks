@@ -3,15 +3,10 @@ name: 'Terraform Plan/Apply'
 on:
   push:
     branches:
-    - main
     - dev
-    - test
   pull_request:
     branches:
-    - main
     - dev
-    - test
-
 #Special permissions required for OIDC authentication
 permissions:
   id-token: write
@@ -29,7 +24,7 @@ jobs:
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
-    env:
+    environment: production
       #this is needed since we are running terraform with read-only permissions
       ARM_SKIP_PROVIDER_REGISTRATION: true
     outputs:
@@ -73,7 +68,10 @@ jobs:
       id: tf-plan
       run: |
         export exitcode=0
-        terraform plan -detailed-exitcode -no-color -out tfplan || export exitcode=$?
+        terraform plan \
+          -var "location=${{ vars.location }}" \
+          -var "resource-group=${{ vars.resource_group }}" \
+          -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
         
@@ -160,4 +158,7 @@ jobs:
 
     # Terraform Apply
     - name: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+      run: terraform apply -auto-approve \
+        -var "location=${{ vars.location }}" \
+        -var "resource_group=${{ vars.resource_group }}" \
+        tfplan
