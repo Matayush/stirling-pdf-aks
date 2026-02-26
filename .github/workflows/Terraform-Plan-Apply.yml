@@ -45,15 +45,18 @@ jobs:
         
     # Selects the correct Terraform state file based on the branch that triggered the workflow. 
     # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
-    - name: Set backend key
+    - name: Set backend key and environment
       id: backend
-      run: |
+      run: | 
         if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
-          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT
-         elif [[ "${GITHUB_REF##*/}" == "test" ]]; then
-          echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT
-        else
-          echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT
+          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT 
+          echo "environment=dev" >> $GITHUB_OUTPUT 
+        elif [[ "${GITHUB_REF##*/}" == "test" ]]; then 
+          echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
+          echo "environment=test" >> $GITHUB_OUTPUT 
+        else 
+          echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
+          echo "environment=prod" >> $GITHUB_OUTPUT 
         fi
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -71,6 +74,7 @@ jobs:
       run: |
         export exitcode=0
         terraform plan \
+          -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ vars.resource_group }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
