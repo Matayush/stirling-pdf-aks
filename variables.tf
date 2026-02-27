@@ -9,11 +9,11 @@ variable "location" {
 }
 
 variable "environment" {
-  type        = string
-  default     = "prod"
+  type = string
+  # default     = "prod"
   description = "Environment name (e.g., dev, test, prod)"
 }
 
-variable "backend_key" {
-  type = string
-}
+#variable "backend_key" {
+#  type = string
+#}
