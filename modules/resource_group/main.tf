@@ -9,7 +9,7 @@ resource "azurerm_resource_group" "rg" {
 
 resource "azurerm_resource_group" "rg1" {
   name     = "rg2"
-  Location = var.location
+  location = "POLANDCENTRAL"
 
   tags = {
     environment = "${var.environment}"
