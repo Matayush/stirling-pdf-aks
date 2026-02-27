@@ -121,20 +121,20 @@ jobs:
       
     # If this is a PR post the changes
     - name: Push Terraform Output to PR
-      if: github.ref != 'refs/heads/main'
-      uses: actions/github-script@v7
-      env:
-        SUMMARY: "${{ steps.tf-plan-string.outputs.summary }}"
-      with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const body = `${process.env.SUMMARY}`;
-            github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-            })
+      if: github.event_name == 'pull_request' 
+      uses: actions/github-script@v7 
+      env: 
+        SUMMARY: "${{ steps.tf-plan-string.outputs.summary }}" 
+      with: 
+        github-token: ${{ secrets.GITHUB_TOKEN }} 
+        script: | 
+          const body = `${process.env.SUMMARY}`; 
+          github.rest.issues.createComment({
+            issue_number: context.payload.pull_request.number, 
+            owner: context.repo.owner, 
+            repo: context.repo.repo, 
+            body: body 
+          });
                 
   terraform-apply:
     name: 'Terraform Apply'
