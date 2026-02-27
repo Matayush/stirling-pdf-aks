@@ -6,12 +6,3 @@ resource "azurerm_resource_group" "rg" {
     environment = "${var.environment}"
   }
 }
-
-resource "azurerm_resource_group" "rg1" {
-  name     = "rg2"
-  location = "POLANDCENTRAL"
-
-  tags = {
-    environment = "${var.environment}"
-  }
-}
