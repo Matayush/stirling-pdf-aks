@@ -4,9 +4,13 @@ on:
   push:
     branches:
     - dev
+    - main
+    - test
   pull_request:
     branches:
     - dev
+    - main
+    - test
 #Special permissions required for OIDC authentication
 permissions:
   id-token: write
@@ -164,4 +168,9 @@ jobs:
 
     # Terraform Apply
     - name: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+      run: | 
+        terraform apply -auto-approve \
+        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+        -var "location=${{ vars.location }}" \
+        -var "resource_group_name=${{ vars.resource_group }}" \
+        tfplan
