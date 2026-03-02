@@ -1,5 +1,12 @@
 name: 'Terraform Plan/Apply'
 
+# Concurrency ensures that only one workflow per branch (dev/test/main) runs at a time. 
+# This prevents Terraform state lock conflicts, avoids parallel plan/apply collisions, 
+# and automatically cancels older runs when new commits arrive on the same branch.
+concurrency:
+  group: terraform-${{ github.ref_name }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
