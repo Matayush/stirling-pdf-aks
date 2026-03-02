@@ -51,17 +51,18 @@ jobs:
     # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
     - name: Set backend key and environment
       id: backend
-      run: | 
-        if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
-          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT 
+      run: |
+        if [[ "${{ github.ref_name }}" == "dev" ]]; then
+          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT  
           echo "environment=dev" >> $GITHUB_OUTPUT 
-        elif [[ "${GITHUB_REF##*/}" == "test" ]]; then 
+        elif [[ "${{ github.ref_name }}" == "test" ]]; then 
           echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=test" >> $GITHUB_OUTPUT 
         else 
           echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=prod" >> $GITHUB_OUTPUT 
         fi
+        
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ steps.backend.outputs.key }}"
