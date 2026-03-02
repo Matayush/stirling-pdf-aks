@@ -170,8 +170,8 @@ jobs:
     # Terraform Apply
     - name: Terraform Apply
       run: | 
-        terraform apply -auto-approve \
-        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
-        -var "location=${{ vars.location }}" \
-        -var "resource_group_name=${{ vars.resource_group }}" \
-        tfplan
+        terraform apply -auto-approve tfplan
+#        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+#        -var "location=${{ vars.location }}" \
+#        -var "resource_group_name=${{ vars.resource_group }}" \
+#        tfplan
