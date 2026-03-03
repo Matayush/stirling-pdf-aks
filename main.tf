@@ -5,7 +5,13 @@ module "resource_group" {
   environment         = var.environment
 }
 
-#module "monitoring" {
+module "networking" {
+  source              = "./modules/networking"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  environment         = var.environment
+  vnet_cidr           = var.vnet_cidr
+}
 #  source              = "./modules/monitoring"
 #  resource_group_name = module.resource_group.name
 #  location            = module.resource_group.location
