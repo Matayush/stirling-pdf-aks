@@ -1,8 +1,8 @@
 resource "azurerm_virtual_network" "aks_vnet" {
-  name                = "vnet-stirling-${var.environment}"
+  name                = 'module.resource_group.name'
+  location            = 'module.resource_group.location'
   address_space       = [var.vnet_cidr]
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  environment         = var.environment
 
   tags = {
     environment = "${var.environment}"
