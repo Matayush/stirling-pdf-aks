@@ -1,5 +1,12 @@
 name: 'Terraform Plan/Apply'
 
+# Concurrency ensures that only one workflow per branch (dev/test/main) runs at a time. 
+# This prevents Terraform state lock conflicts, avoids parallel plan/apply collisions, 
+# and automatically cancels older runs when new commits arrive on the same branch.
+concurrency:
+  group: terraform-${{ github.ref_name }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -11,13 +18,12 @@ on:
     - dev
     - main
     - test
-#Special permissions required for OIDC authentication
+# Permissions required for Terraform CI/CD using a Service Principal.
 permissions:
-  id-token: write
   contents: read
   pull-requests: write
 
-#These environment variables are used by the terraform azure provider to setup OIDD authenticate. 
+# Environment variables used by the AzureRM Terraform provider to authenticate using a Service Principal
 env:
   ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
   ARM_CLIENT_SECRET: "${{ secrets.ARM_CLIENT_SECRET }}"
@@ -28,9 +34,7 @@ jobs:
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
-    env:
       #this is needed since we are running terraform with read-only permissions
-      ARM_SKIP_PROVIDER_REGISTRATION: true
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
       backendKey: ${{ steps.backend.outputs.key }}
@@ -143,7 +147,7 @@ jobs:
                 
   terraform-apply:
     name: 'Terraform Apply'
-    if: needs.terraform-plan.outputs.tfplanExitCode == 2
+    if: needs.terraform-plan.outputs.tfplanExitCode == 2 && (github.ref_name == 'prod' || github.ref_name == 'test')
     runs-on: ubuntu-latest
     environment: ${{ needs.terraform-plan.outputs.environment }}
     needs: [terraform-plan]
@@ -170,8 +174,8 @@ jobs:
     # Terraform Apply
     - name: Terraform Apply
       run: | 
-        terraform apply -auto-approve \
-        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
-        -var "location=${{ vars.location }}" \
-        -var "resource_group_name=${{ vars.resource_group }}" \
-        tfplan
+        terraform apply -auto-approve tfplan
+#        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+#        -var "location=${{ vars.location }}" \
+#        -var "resource_group_name=${{ vars.resource_group }}" \
+#        tfplan
