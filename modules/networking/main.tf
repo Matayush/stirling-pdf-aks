@@ -1,6 +1,6 @@
 resource "azurerm_virtual_network" "aks_vnet" {
-  name                = module.resource_group.name
-  location            = module.resource_group.location
+  name                = var.resource_group_name
+  location            = var.resource_group.location
   address_space       = [var.vnet_cidr]
   environment         = var.environment
 
