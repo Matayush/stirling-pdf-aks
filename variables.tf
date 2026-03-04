@@ -14,6 +14,8 @@ variable "environment" {
   description = "Environment name (e.g., dev, test, prod)"
 }
 
-#variable "backend_key" {
-#  type = string
-#}
+variable "vnet_cidr" {
+  description = "CIDR block for the virtual network"
+  type        = string
+  default     = "10.0.0.0/16"
+}
