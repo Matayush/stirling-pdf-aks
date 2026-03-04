@@ -12,6 +12,16 @@ module "networking" {
   environment         = var.environment
   vnet_cidr           = var.vnet_cidr
 }
+
+module "aks" {
+  source              = "./modules/aks"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  environment         = var.environment
+  aks_subnet_id       = module.networking.aks_subnet_id
+  node_count          = var.node_count
+  vm_size             = var.vm_size
+}
 #  source              = "./modules/monitoring"
 #  resource_group_name = module.resource_group.name
 #  location            = module.resource_group.location
@@ -22,12 +32,4 @@ module "networking" {
 #  source              = "../modules/acr"
 #  resource_group_name = module.rg.name
 #  location            = module.rg.location
-#}
-#
-#module "aks" {
-#  source                    = "../modules/aks"
-#  resource_group_name        = module.rg.name
-#  location                   = module.rg.location
-#  log_analytics_workspace_id = module.monitoring.law_id
-#  acr_id                     = module.acr.id
 #}
