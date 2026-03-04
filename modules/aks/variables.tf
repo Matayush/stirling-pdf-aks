@@ -21,11 +21,9 @@ variable "aks_subnet_id" {
 variable "node_count" {
   type        = number
   description = "Number of nodes in the default node pool"
-  default     = 1
 }
 
 variable "vm_size" {
   type        = string
   description = "VM size for AKS nodes"
-  default     = "Standard_D2s_v3"
 }
