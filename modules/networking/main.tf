@@ -17,7 +17,7 @@ resource "azurerm_subnet" "aks_subnet" {
 }
 
 resource "azurerm_subnet" "load_balancer_subnet" {
-  name                 = "subnet-loadbalancer-${var.resource_group_name}"
+  name                 = "subnet-LB-${var.resource_group_name}"
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.aks_vnet.name
   address_prefixes     = ["10.10.1.0/24"]
