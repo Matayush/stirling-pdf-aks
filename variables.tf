@@ -17,5 +17,5 @@ variable "environment" {
 variable "vnet_cidr" {
   description = "CIDR block for the virtual network"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.10.0.0/16"
 }
