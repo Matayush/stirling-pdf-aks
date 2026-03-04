@@ -12,9 +12,9 @@ resource "azurerm_kubernetes_cluster" "aks" {
     node_count     = var.node_count
     vm_size        = var.vm_size
     vnet_subnet_id = var.aks_subnet_id
-    enable_auto_scaling = true
-    min_count           = 0   # ← scales to 0 when idle
-    max_count           = 1
+    #enable_auto_scaling = true
+    #min_count           = 0   # ← scales to 0 when idle
+    #max_count           = 1
   }
 
   identity {
