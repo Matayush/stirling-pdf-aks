@@ -175,7 +175,44 @@ jobs:
     - name: Terraform Apply
       run: | 
         terraform apply -auto-approve tfplan
-#        -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
-#        -var "location=${{ vars.location }}" \
-#        -var "resource_group_name=${{ vars.resource_group }}" \
-#        tfplan
+        
+  k8s-deploy:
+    name: 'Depoly to AKS'
+    needs: [terraform-plan, terraform-apply]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.terraform-plan.outputs.environment }}
+    if: |
+      always() &&
+      needs.terraform-plan.result == 'success' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') &&
+      github.event_name != 'pull_request' &&
+      (github.ref_name == 'main' || github.ref_name == 'test')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses:  azure/login@v1
+      with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+    
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+         resource-group: ${{ vars.resource_group }}
+         cluster-name: aks-${{ needs.terraform-plan.outputs.environment }}
+
+    - name: Deploy manifests
+      uses: azure/k8s-deploy@v4
+      with:
+        namespace: stirling-pdf
+        manifests: |
+          k8s/namespace.yaml
+          k8s/configmap-backend.yaml
+          k8s/configmap-frontend.yaml
+          k8s/deployment-backend.yaml
+          k8s/deployment-frontend.yaml
+          k8s/service-backend.yaml
+          k8s/service-frontend.yaml
+         
