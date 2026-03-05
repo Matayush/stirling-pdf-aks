@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stirling-pdf-backend-service
+  namespace: stirling-pdf
+spec:
+  type: ClusterIP
+  selector:
+    app: stirling-pdf-backend
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
