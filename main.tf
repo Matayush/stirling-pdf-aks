@@ -22,6 +22,14 @@ module "aks" {
   node_count          = var.node_count
   vm_size             = var.vm_size
 }
+
+module "acr" {
+  source              = "./modules/acr"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  environment         = var.environment
+  aks_principal_id     = module.aks.aks_principal_id
+}
 #  source              = "./modules/monitoring"
 #  resource_group_name = module.resource_group.name
 #  location            = module.resource_group.location
