@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stirling-pdf-frontend-service
+  namespace: stirling-pdf
+spec:
+  type: LoadBalancer
+  selector:
+    app: stirling-pdf-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
