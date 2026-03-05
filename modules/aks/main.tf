@@ -4,7 +4,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = var.resource_group_name
   dns_prefix          = "stirling-${var.environment}"
 
-  sku_tier = "Free"   
+  sku_tier = "Free"
   # ← Free control plane (no SLA guarantee)
 
   default_node_pool {

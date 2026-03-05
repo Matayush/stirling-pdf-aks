@@ -1,10 +1,11 @@
 resource "azurerm_container_registry" "acr" {
-  name                = "acr{var.environment}"   # must be globally unique, no dashes
+  name                = "acr${var.environment}"
   resource_group_name = var.resource_group_name
   location            = var.location
-  sku                 = "Basic"                           # cheapest tier ~$5/month
+  sku                 = "Basic"
 
-  admin_enabled = false   # use managed identity instead of username/password
+  # use managed identity instead of username/password
+  admin_enabled = false
 
   tags = {
     environment = var.environment
