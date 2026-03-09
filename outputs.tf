@@ -6,6 +6,6 @@ output "resource_group_location" {
   value = module.resource_group.location
 }
 
-output "aks_cluster_name" {
-  value = azurerm_kubernetes_cluster.aks.name
+output "cluster_name" {
+  value = module.aks.cluster_name
 }
