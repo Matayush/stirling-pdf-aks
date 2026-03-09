@@ -21,6 +21,9 @@ spec:
         envFrom:
         - configMapRef:
             name: stirling-pdf-frontend-config
+        env:
+        - name: MODE
+          value: "FRONTEND"
         resources:
           requests:
             memory: "256Mi"
