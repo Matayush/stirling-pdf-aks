@@ -39,6 +39,7 @@ jobs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
       backendKey: ${{ steps.backend.outputs.key }}
       environment: ${{ steps.backend.outputs.environment }}
+      resource_group: ${{ steps.backend.outputs.resource_group }}
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -58,13 +59,16 @@ jobs:
       run: |
         if [[ "${{ github.ref_name }}" == "dev" ]]; then
           echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT  
-          echo "environment=dev" >> $GITHUB_OUTPUT 
+          echo "environment=dev" >> $GITHUB_OUTPUT
+          echo "resource_group=rg-stirling-dev" >> $GITHUB_OUTPUT
         elif [[ "${{ github.ref_name }}" == "test" ]]; then 
           echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
-          echo "environment=test" >> $GITHUB_OUTPUT 
+          echo "environment=test" >> $GITHUB_OUTPUT
+          echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
         else 
           echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
-          echo "environment=prod" >> $GITHUB_OUTPUT 
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
         fi
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
@@ -200,7 +204,7 @@ jobs:
     - name: Set AKS context
       uses: azure/aks-set-context@v3
       with:
-         resource-group: ${{ vars.resource_group }}
+         resource-group: ${{ needs.terraform-plan.outputs.resource_group }}
          cluster-name: aks-${{ needs.terraform-plan.outputs.environment }}
 
     - name: Deploy manifests
