@@ -21,9 +21,10 @@ spec:
         envFrom:
         - configMapRef:
             name: stirling-pdf-frontend-config
-        env:
-        - name: MODE
-          value: "FRONTEND"
+        volumeMounts:
+        - name: settings-config
+          mountPath: /configs/settings.yml
+          subPath: settings.yml
         resources:
           requests:
             memory: "2Gi"
@@ -31,3 +32,10 @@ spec:
           limits:
             memory: "3Gi"
             cpu: "1000m"
+      volumes:
+      - name: settings-config
+        configMap:
+          name: stirling-pdf-frontend-config
+          items:
+          - key: settings.yml
+            path: settings.yml
