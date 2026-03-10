@@ -5,7 +5,7 @@ metadata:
   namespace: stirling-pdf
 data:
   MODE: "FRONTEND"
-  SECURITY_BACKENDURL: "http://stirling-pdf-backend-service.stirling-pdf.svc.cluster.local:8080"
+  SYSTEM_BACKENDURL: "http://stirling-pdf-backend-service.stirling-pdf.svc.cluster.local:8080"
   VITE_API_BASE_URL: "http://stirling-pdf-backend-service:8080"
   SECURITY_ENABLELOGIN: "false"
   DISABLE_ADDITIONAL_FEATURES: "false"
