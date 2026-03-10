@@ -6,4 +6,6 @@ metadata:
 data:
   MODE: "BACKEND"
   DOCKER_ENABLE_SECURITY: "false"
+  SECURITY_ENABLELOGIN: "false"
+  DISABLE_ADDITIONAL_FEATURES: "false" 
   LANGS: "en_GB"
