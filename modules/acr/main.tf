@@ -1,6 +1,6 @@
 resource "azurerm_container_registry" "acr" {
-  # checkov:skip=CKV_AZURE_163:Defender for Containers handles vuln scanning at subscription level
-  # checkov:skip=CKV_AZURE_166:Quarantine policy requires Defender for Containers, not Terraform-configurable
+  # checkov:skip=CKV_AZURE_163:Requires Standars or Premium SKU
+  
   
   name                = "acrstirling${var.environment}"
   resource_group_name = var.resource_group_name
