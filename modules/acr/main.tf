@@ -1,7 +1,6 @@
 resource "azurerm_container_registry" "acr" {
   # checkov:skip=CKV_AZURE_163:Requires Standars or Premium SKU
   
-  
   name                = "acrstirling${var.environment}"
   resource_group_name = var.resource_group_name
   location            = var.location
