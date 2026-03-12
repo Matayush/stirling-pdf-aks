@@ -6,7 +6,6 @@ resource "azurerm_container_registry" "acr" {
   resource_group_name = var.resource_group_name
   location            = var.location
   sku                 = "Basic"
-  admin_enabled       = false
 
   # use managed identity instead of username/password
   admin_enabled = false
