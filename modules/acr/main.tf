@@ -1,6 +1,8 @@
 resource "azurerm_container_registry" "acr" {
   # checkov:skip=CKV_AZURE_163:Requires Standard or Premium SKU
   # checkov:skip=CKV_AZURE_237:Requires Premium SKU
+  # checkov:skip=CKV_AZURE_165:Requires Premium SKU
+  # checkov:skip=CKV_AZURE_139:Requires Premium SKU for enabling private endpoints
 
   
   name                = "acrstirling${var.environment}"
