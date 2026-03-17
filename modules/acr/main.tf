@@ -1,5 +1,7 @@
 resource "azurerm_container_registry" "acr" {
-  # checkov:skip=CKV_AZURE_163:Requires Standars or Premium SKU
+  # checkov:skip=CKV_AZURE_163:Requires Standard or Premium SKU
+  # checkov:skip=CKV_AZURE_237:Requires Premium SKU
+
   
   name                = "acrstirling${var.environment}"
   resource_group_name = var.resource_group_name
