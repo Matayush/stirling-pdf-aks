@@ -6,6 +6,7 @@ resource "azurerm_container_registry" "acr" {
   # checkov:skip=CKV_AZURE_166:Requires Premium SKU
   # checkov:skip=CKV_AZURE_164:Requires Premium SKU
   # checkov:skip=CKV_AZURE_167:Requires Premium SKU
+  # checkov:skip=CKV_AZURE_233:Requires Zone redundancy is now enabled by default for all registries in supported regions
 
   
   name                = "acrstirling${var.environment}"
