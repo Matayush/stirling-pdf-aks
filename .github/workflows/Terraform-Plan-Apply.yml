@@ -22,6 +22,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
 
 # Environment variables used by the AzureRM Terraform provider to authenticate using a Service Principal
 env:
@@ -148,7 +149,32 @@ jobs:
             repo: context.repo.repo, 
             body: body 
           });
-                
+
+  # Checkov IaC security scan job
+  checkov-scan:
+    name: 'Checkov Security Scan'
+    runs-on: ubuntu-latest
+    needs: [terraform-plan]   # runs after plan
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run Checkov
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: terraform,kubernetes   # scans both .tf files and k8s/ manifests
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+        soft_fail: true   # reports findings but won't block the pipeline — switch to false later
+
+    - name: Upload SARIF to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()   # upload results even if Checkov finds issues
+      with:
+        sarif_file: checkov-results.sarif
+  
   terraform-apply:
     name: 'Terraform Apply'
     if: needs.terraform-plan.outputs.tfplanExitCode == '2' && (github.ref_name == 'main' || github.ref_name == 'test')
