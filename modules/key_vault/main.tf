@@ -6,7 +6,7 @@ data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "key_vault" {
   # checkov:skip=CKV2_AZURE_32:Key Vault private endpoint deferred — requires Private Link
-  
+
   name                       = "key-vault-stirling${var.environment}"
   resource_group_name        = var.resource_group_name
   location                   = var.location
