@@ -3,6 +3,7 @@
 # used to configure Key Vault and RBAC role assignments without hardcoding values.
 data "azurerm_client_config" "current" {}
 
+#checkov:skip=CKV2_AZURE_32:Key Vault private endpoint deferred — requires Private Link
 resource "azurerm_key_vault" "key_vault" {
   name                       = "key-vault-stirling${var.environment}"
   resource_group_name        = var.resource_group_name
@@ -27,8 +28,7 @@ resource "azurerm_role_assignment" "terraform_key_vault_access" {
 }
 
 
-# checkov:skip=CKV2_AZURE_32:Key Vault private endpoint deferred — requires Private Link
-# checkov:skip=CKV_AZURE_112:HSM-backed keys require Premium SKU — standard RSA-4096 satisfies encryption requirements for this workload
+#checkov:skip=CKV_AZURE_112:HSM-backed keys require Premium SKU — standard RSA-4096 satisfies encryption requirements for this workload
 resource "azurerm_key_vault_key" "key_vault_key" {
   name         = "stirling-key-${var.environment}"
   key_vault_id = azurerm_key_vault.key_vault.id
