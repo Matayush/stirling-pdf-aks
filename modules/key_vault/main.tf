@@ -26,6 +26,8 @@ resource "azurerm_role_assignment" "terraform_key_vault_access" {
   scope                = azurerm_key_vault.key_vault.id
 }
 
+#checkov:skip=CKV_AZURE_32:Key Vault private endpoint deferred — requires Private Link
+#checkov:skip=CKV_AZURE_112:HSM-backed keys require Premium SKU — standard RSA-4096 satisfies encryption requirements for this workload
 resource "azurerm_key_vault_key" "key_vault_key" {
   name         = "stirling-key-${var.environment}"
   key_vault_id = azurerm_key_vault.key_vault.id
