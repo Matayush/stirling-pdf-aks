@@ -1,5 +1,5 @@
 output "disk_encryption_set_id" {
-  value       = azurerm_disk_encryption_set.aks.id
+  value       = azurerm_disk_encryption_set.disk_encryption_set.id
   description = "ID of the Disk Encryption Set to pass to AKS"
 }
 
