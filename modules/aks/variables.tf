@@ -27,3 +27,8 @@ variable "vm_size" {
   type        = string
   description = "VM size for AKS nodes"
 }
+
+variable "disk_encryption_set_id" {
+  type        = string
+  description = "ID of the Disk Encryption Set for AKS node disk encryption"
+}

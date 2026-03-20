@@ -1,8 +1,9 @@
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                = "aks-${var.environment}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  dns_prefix          = "stirling-${var.environment}"
+  name                   = "aks-${var.environment}"
+  location               = var.location
+  resource_group_name    = var.resource_group_name
+  dns_prefix             = "stirling-${var.environment}"
+  disk_encryption_set_id = var.disk_encryption_set_id
 
   sku_tier = "Free"
   # ← Free control plane (no SLA guarantee)
