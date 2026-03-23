@@ -5,6 +5,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   resource_group_name    = var.resource_group_name
   dns_prefix             = "stirling-${var.environment}"
   disk_encryption_set_id = var.disk_encryption_set_id
+  azure_policy_enabled   = true # ← Enforce Azure Policy for Kubernetes on this cluster,  no policies active until explicitly assigned, CKV 116
 
   sku_tier = "Free"
   # ← Free control plane (no SLA guarantee)
