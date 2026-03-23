@@ -11,11 +11,11 @@ resource "azurerm_kubernetes_cluster" "aks" {
   # ← Free control plane (no SLA guarantee)
 
   default_node_pool {
-    name                   = "default"
-    node_count             = var.node_count
-    vm_size                = var.vm_size
-    vnet_subnet_id         = var.aks_subnet_id
-    enable_host_encryption = true # free - encrypts temp disks, caches and data flowstores with platform-managed keys, satisfies encryption requirements for this workload CKV_AZURE_227
+    name                       = "default"
+    node_count                 = var.node_count
+    vm_size                    = var.vm_size
+    vnet_subnet_id             = var.aks_subnet_id
+    encryption_at_host_enabled = true # free - encrypts temp disks, caches and data flowstores with platform-managed keys, satisfies encryption requirements for this workload CKV_AZURE_227
     #enable_auto_scaling = true
     #min_count           = 0   # ← scales to 0 when idle
     #max_count           = 1
