@@ -28,8 +28,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   network_profile {
     network_plugin = "azure"
-    service_cidr   = "10.20.0.0/16"
-    dns_service_ip = "10.20.0.10"
+    network_plugin_mode   = "overlay"
+    network_data_plane = "cilium"
+    network_policy = "cilium"
+    pod_cidr       = "192.168.0.0/16"
+    service_cidr   = var.service_cidr
+    dns_service_ip = var.dns_service_ip
   }
 
   tags = {
