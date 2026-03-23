@@ -43,3 +43,4 @@ variable "dns_service_ip" {
   type        = string
   description = "IP address for the Kubernetes DNS service - must be within service_cidr"
   default     = "10.0.2.10"
+}
