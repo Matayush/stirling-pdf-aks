@@ -27,3 +27,20 @@ variable "vm_size" {
   type        = string
   description = "VM size for AKS nodes"
 }
+
+variable "disk_encryption_set_id" {
+  type        = string
+  description = "ID of the Disk Encryption Set for AKS node disk encryption"
+}
+
+variable "service_cidr" {
+  type        = string
+  description = "CIDR range for Kubernetes services - must not overlap with VNet subnets"
+  default     = "10.0.2.0/24"
+}
+
+variable "dns_service_ip" {
+  type        = string
+  description = "IP address for the Kubernetes DNS service - must be within service_cidr"
+  default     = "10.0.2.10"
+}
