@@ -1,4 +1,5 @@
 resource "azurerm_kubernetes_cluster" "aks" {
+  # checkov:skip=CKV_AZURE_115:Private cluster deferred - requires self-hosted runner inside VNet or VPN for CI/CD pipeline access to private API server, would inquire additional costs
   name                   = "aks-${var.environment}"
   location               = var.location
   resource_group_name    = var.resource_group_name
