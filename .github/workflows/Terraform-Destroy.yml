@@ -1,0 +1,84 @@
+name: 'Terraform Destroy'
+
+# Same concurrency pattern as the plan/apply workflow
+concurrency:
+  group: terraform-${{ github.ref_name }}
+  cancel-in-progress: false  # don't cancel a running destroy!
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to destroy (dev or test — never prod here!)'
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
+  ARM_CLIENT_SECRET: "${{ secrets.ARM_CLIENT_SECRET }}"
+  ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
+  ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+
+jobs:
+  terraform-destroy:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
+    # Safety gate — must type "destroy" to proceed
+    if: github.event.inputs.confirm == 'destroy'
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false
+
+    # Mirrors the existing "Set backend key and environment" step exactly as the plan/apply workflow
+    - name: Set backend key and environment
+      id: backend
+      run: |
+        if [[ "${{ github.event.inputs.environment }}" == "dev" ]]; then
+          echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT
+          echo "resource_group=rg-stirling-dev" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.event.inputs.environment }}" == "test" ]]; then
+          echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT
+          echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Terraform Init
+      run: terraform init -backend-config="key=${{ steps.backend.outputs.key }}"
+
+    # Show what will be destroyed BEFORE doing it — audit trail
+    - name: Terraform Plan Destroy
+      run: |
+        terraform plan -destroy \
+          -var="environment=${{ github.event.inputs.environment }}" \
+          -var="location=${{ vars.location }}" \
+          -var="resource_group_name=${{ steps.backend.outputs.resource_group }}" \
+          -no-color -out=tfdestroyplan
+
+    - name: Publish Destroy Plan to Summary
+      run: |
+        PLAN=$(terraform show -no-color tfdestroyplan)
+        echo "## 🔥 Destroy Plan for \`${{ github.event.inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "<details><summary>Click to expand</summary>" >> $GITHUB_STEP_SUMMARY
+        echo '```terraform' >> $GITHUB_STEP_SUMMARY
+        echo "$PLAN" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+    - name: Terraform Destroy
+      run: |
+        terraform apply -auto-approve tfdestroyplan
