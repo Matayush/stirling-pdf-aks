@@ -17,7 +17,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
     vnet_subnet_id              = var.aks_subnet_id
     host_encryption_enabled     = true # free - encrypts temp disks, caches and data flowstores with platform-managed keys, satisfies encryption requirements for this workload CKV_AZURE_227
     temporary_name_for_rotation = "tmpdefault"
-    max_pods                    = 110  # default Azure CNI overlay value, satisfies CKV_AZURE_168
+    max_pods                    = 110 # default Azure CNI overlay value, satisfies CKV_AZURE_168
     #enable_auto_scaling = true
     #min_count           = 0   # ← scales to 0 when idle
     #max_count           = 1
