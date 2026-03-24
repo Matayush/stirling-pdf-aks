@@ -21,14 +21,15 @@ module "key_vault" {
 }
 
 module "aks" {
-  source                 = "./modules/aks"
-  resource_group_name    = module.resource_group.name
-  location               = module.resource_group.location
-  environment            = var.environment
-  aks_subnet_id          = module.networking.aks_subnet_id
-  node_count             = var.node_count
-  vm_size                = var.vm_size
-  disk_encryption_set_id = module.key_vault.disk_encryption_set_id
+  source                     = "./modules/aks"
+  resource_group_name        = module.resource_group.name
+  location                   = module.resource_group.location
+  environment                = var.environment
+  aks_subnet_id              = module.networking.aks_subnet_id
+  node_count                 = var.node_count
+  vm_size                    = var.vm_size
+  disk_encryption_set_id     = module.key_vault.disk_encryption_set_id
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 }
 
 module "acr" {
@@ -39,12 +40,13 @@ module "acr" {
   aks_principal_id    = module.aks.aks_principal_id
 }
 
-#  source              = "./modules/monitoring"
-#  resource_group_name = module.resource_group.name
-#  location            = module.resource_group.location
-#  prefix              = var.prefix
-#  environment         = var.environment
-#}
+module "monitoring" {
+  source              = "./modules/monitoring"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  prefix              = var.prefix
+  environment         = var.environment
+}
 #module "acr" {
 #  source              = "../modules/acr"
 #  resource_group_name = module.rg.name

@@ -38,6 +38,11 @@ resource "azurerm_kubernetes_cluster" "aks" {
     dns_service_ip      = var.dns_service_ip
   }
 
+  oms_agent {
+    log_analytics_workspace_id      = var.log_analytics_workspace_id
+    msi_auth_for_monitoring_enabled = true
+  }
+
   tags = {
     environment = var.environment
   }

@@ -5,4 +5,8 @@ resource "azurerm_log_analytics_workspace" "this" {
 
   sku               = "PerGB2018"
   retention_in_days = 30
+
+  tags = {
+    environment = var.environment
+  }
 }

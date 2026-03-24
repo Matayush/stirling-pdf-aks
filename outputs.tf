@@ -9,3 +9,8 @@ output "resource_group_location" {
 output "cluster_name" {
   value = module.aks.cluster_name
 }
+
+output "log_analytics_workspace_id" {
+  value       = module.monitoring.log_analytics_workspace_id
+  description = "Log Analytics Workspace ID — use for diagnostics settings on other resources"
+}
