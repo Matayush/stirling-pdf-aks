@@ -44,7 +44,6 @@ module "monitoring" {
   source              = "./modules/monitoring"
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
-  prefix              = var.prefix
   environment         = var.environment
 }
 #module "acr" {
