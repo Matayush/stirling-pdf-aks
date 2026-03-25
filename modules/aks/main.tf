@@ -1,6 +1,7 @@
 resource "azurerm_kubernetes_cluster" "aks" {
   # checkov:skip=CKV_AZURE_115:Private cluster deferred - requires self-hosted runner inside VNet or VPN for CI/CD pipeline access to private API server, would inquire additional costs
   # checkov:skip=CKV_AZURE_232: Dedicated system/user node pools not used — doubles VM cost for test env. Enable in prod with only_critical_addons_enabled=true.
+  # checkov:skip=CKV_AZURE_6: GitHub-hosted runners use dynamic IPs on every workflow run, making static API server IP whitelisting impractical. To be revisited if migrating to self-hosted runners or private networking.
   name                   = "aks-${var.environment}"
   location               = var.location
   resource_group_name    = var.resource_group_name
@@ -18,9 +19,9 @@ resource "azurerm_kubernetes_cluster" "aks" {
     vnet_subnet_id              = var.aks_subnet_id
     host_encryption_enabled     = true # free - encrypts temp disks, caches and data flowstores with platform-managed keys, satisfies encryption requirements for this workload CKV_AZURE_227
     temporary_name_for_rotation = "tmpdefault"
-    max_pods                    = 110 # default Azure CNI overlay value, satisfies CKV_AZURE_168
-    os_disk_type = "Ephemeral"   # CKV_AZURE_226 - Ephemeral OS disks provide better performance and are suitable for stateless workloads, satisfies encryption requirements for this workload with host_encryption_enabled=true
-    os_disk_size_gb = 30
+    max_pods                    = 110         # default Azure CNI overlay value, satisfies CKV_AZURE_168
+    os_disk_type                = "Ephemeral" # CKV_AZURE_226 - Ephemeral OS disks provide better performance and are suitable for stateless workloads, satisfies encryption requirements for this workload with host_encryption_enabled=true
+    os_disk_size_gb             = 30
     #enable_auto_scaling = true
     #min_count           = 0   # ← scales to 0 when idle
     #max_count           = 1
