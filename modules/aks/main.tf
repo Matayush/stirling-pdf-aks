@@ -52,6 +52,27 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   }
 
+  automatic_upgrade_channel = "patch" # ← Automatic patch updates for control plane, balances stability and security, CKV_AZURE_117
+  node_os_upgrade_channel = "NodeImage" # ← Automatic OS image updates for nodes, ensures security updates without changing Kubernetes version
+
+  maintenance_window_auto_upgrade {
+    frequency = "Weekly"
+    interval = 1
+    duration = 4 
+    day_of_week = "Sunday"
+    start_time = "02:00"
+    utc_offset = "+01:00" # adjust to your local time zone
+    }
+  
+  maintenance_window_node_os {
+    frequency = "Weekly"
+    interval = 1
+    duration = 4 
+    day_of_week = "Sunday"
+    start_time = "03:00"
+    utc_offset = "+01:00" # adjust to your local time zone
+  }
+
   tags = {
     environment = var.environment
   }
