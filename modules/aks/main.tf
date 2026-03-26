@@ -46,6 +46,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
     msi_auth_for_monitoring_enabled = true
   }
 
+  key_vault_secrets_provider {
+    secret_rotation_enabled  = true
+    secret_rotation_interval = "10m"
+
+  }
+
   tags = {
     environment = var.environment
   }
