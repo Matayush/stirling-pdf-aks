@@ -37,6 +37,8 @@ module "aks" {
   vm_size                    = var.vm_size
   disk_encryption_set_id     = module.key_vault.disk_encryption_set_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  service_cidr               = var.service_cidr
+  dns_service_ip             = var.dns_service_ip
 }
 
 module "acr" {

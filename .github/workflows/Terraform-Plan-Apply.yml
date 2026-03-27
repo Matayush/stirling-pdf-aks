@@ -75,6 +75,10 @@ jobs:
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ steps.backend.outputs.key }}"
+    
+    # Validates the Terraform configuration files in the current directory.  
+    - name: Terraform Validate         
+      run: terraform validate
 
     # Checks that all Terraform configuration files adhere to a canonical format
     # Will fail the build if not
@@ -90,7 +94,7 @@ jobs:
         terraform plan \
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ vars.resource_group }}" \
+          -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
