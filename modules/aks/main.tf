@@ -3,6 +3,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   # checkov:skip=CKV_AZURE_232: Dedicated system/user node pools not used — doubles VM cost for test env. Enable in prod with only_critical_addons_enabled=true.
   # checkov:skip=CKV_AZURE_6: GitHub-hosted runners use dynamic IPs on every workflow run, making static API server IP whitelisting impractical. To be revisited if migrating to self-hosted runners or private networking.
   # checkov:skip=CKV_AZURE_170: Free SKU intentionally used for dev/test environments to minimise cost.
+  # checkov:skip=CKV_AZURE_141: Local admin account retained for CI/CD pipeline access via GitHub Actions. Azure AD RBAC integration planned as a dedicated future milestone.
   name                   = "aks-${var.environment}"
   location               = var.location
   resource_group_name    = var.resource_group_name
@@ -13,7 +14,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   sku_tier = "Free"
   # ← Free control plane (no SLA guarantee)
 
- identity {
+  identity {
     type = "SystemAssigned"
   }
 
@@ -53,25 +54,25 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   }
 
-  automatic_upgrade_channel = "patch" # ← Automatic patch updates for control plane, balances stability and security, CKV_AZURE_117
-  node_os_upgrade_channel = "NodeImage" # ← Automatic OS image updates for nodes, ensures security updates without changing Kubernetes version
+  automatic_upgrade_channel = "patch"     # ← Automatic patch updates for control plane, balances stability and security, CKV_AZURE_117
+  node_os_upgrade_channel   = "NodeImage" # ← Automatic OS image updates for nodes, ensures security updates without changing Kubernetes version
 
   maintenance_window_auto_upgrade {
-    frequency = "Weekly"
-    interval = 1
-    duration = 4 
+    frequency   = "Weekly"
+    interval    = 1
+    duration    = 4
     day_of_week = "Sunday"
-    start_time = "02:00"
-    utc_offset = "+01:00" # adjust to your local time zone
-    }
-  
+    start_time  = "02:00"
+    utc_offset  = "+01:00" # adjust to your local time zone
+  }
+
   maintenance_window_node_os {
-    frequency = "Weekly"
-    interval = 1
-    duration = 4 
+    frequency   = "Weekly"
+    interval    = 1
+    duration    = 4
     day_of_week = "Sunday"
-    start_time = "03:00"
-    utc_offset = "+01:00" # adjust to your local time zone
+    start_time  = "03:00"
+    utc_offset  = "+01:00" # adjust to your local time zone
   }
 
   tags = {
