@@ -20,6 +20,13 @@ module "key_vault" {
   environment         = var.environment
 }
 
+module "monitoring" {
+  source              = "./modules/monitoring"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  environment         = var.environment
+}
+
 module "aks" {
   source                     = "./modules/aks"
   resource_group_name        = module.resource_group.name
@@ -39,18 +46,6 @@ module "acr" {
   environment         = var.environment
   aks_principal_id    = module.aks.aks_principal_id
 }
-
-module "monitoring" {
-  source              = "./modules/monitoring"
-  resource_group_name = module.resource_group.name
-  location            = module.resource_group.location
-  environment         = var.environment
-}
-#module "acr" {
-#  source              = "../modules/acr"
-#  resource_group_name = module.rg.name
-#  location            = module.rg.location
-#}
 
 # Depends on both key_vault and aks modules being created first
 # Grants AKS managed identity permission to use the disk encryption key at runtime
