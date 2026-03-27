@@ -39,6 +39,7 @@ resource "azurerm_key_vault_key" "key_vault_key" {
   key_type     = "RSA"
   key_size     = 4096
   key_opts     = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
+  expiry_date  = timeadd(timestamp(), "8760h") # CKV_AZURE_40 — expiry set to 1 year from initial creation (8760h = 365 days)
 
   rotation_policy {
     automatic {
@@ -50,6 +51,12 @@ resource "azurerm_key_vault_key" "key_vault_key" {
 
   tags = {
     environment = var.environment
+  }
+
+  # expiry_date uses timestamp() which changes on every plan — ignore after initial creation.
+  # Actual key rotation is handled automatically by the rotation_policy block above.
+  lifecycle {
+    ignore_changes = [expiry_date]
   }
   depends_on = [azurerm_role_assignment.terraform_key_vault_access]
 }
