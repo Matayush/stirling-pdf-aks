@@ -6,7 +6,7 @@ data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "key_vault" {
   # checkov:skip=CKV2_AZURE_32:Key Vault private endpoint deferred — requires Private Link
-  # checkov:skip=CKV2_AZURE_189:Required private endpoint SKU not available in Free tier, standard SKU with network ACLs provides sufficient security for dev/test environments, to be revisited for prod with Private Link and/or Firewall rules.  
+  # checkov:skip=CKV_AZURE_189:Required private endpoint SKU not available in Free tier, standard SKU with network ACLs provides sufficient security for dev/test environments, to be revisited for prod with Private Link and/or Firewall rules.  
 
   name                       = "key-vault-stirling${var.environment}"
   resource_group_name        = var.resource_group_name
