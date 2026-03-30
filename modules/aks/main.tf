@@ -1,7 +1,6 @@
 resource "azurerm_kubernetes_cluster" "aks" {
   # checkov:skip=CKV_AZURE_115:Private cluster deferred - requires self-hosted runner inside VNet or VPN for CI/CD pipeline access to private API server, would inquire additional costs
   # checkov:skip=CKV_AZURE_232: Dedicated system/user node pools not used — doubles VM cost for test env. Enable in prod with only_critical_addons_enabled=true.
-  # checkov:skip=CKV_AZURE_6: GitHub-hosted runners use dynamic IPs on every workflow run, making static API server IP whitelisting impractical. To be revisited if migrating to self-hosted runners or private networking.
   # checkov:skip=CKV_AZURE_170: Free SKU intentionally used for dev/test environments to minimise cost.
   # checkov:skip=CKV_AZURE_141: Local admin account retained for CI/CD pipeline access via GitHub Actions. Azure AD RBAC integration planned as a dedicated future milestone.
   name                   = "aks-${var.environment}"
@@ -16,6 +15,11 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  # Restricts API server access to known IPs — runner IP injected at pipeline runtime via CLI
+  api_server_access_profile {
+    authorized_ip_ranges = length(var.allowed_ips) > 0 ? var.allowed_ips : null
   }
 
   default_node_pool {
