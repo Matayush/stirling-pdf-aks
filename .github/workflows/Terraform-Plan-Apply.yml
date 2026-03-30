@@ -85,12 +85,21 @@ jobs:
       id: runner-ip
       run: echo "runnerIP=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
+    # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        az keyvault network-rule add \
-          --name key-vault-stirling${{ steps.backend.outputs.environment }} \
-          --resource-group ${{ steps.backend.outputs.resource_group }} \
-          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Key Vault found — adding runner IP to network rules"
+          az keyvault network-rule add \
+            --name "$KEYVAULT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — skipping (first deployment)"
+        fi
 
     # Validates the Terraform configuration files in the current directory.  
     - name: Terraform Validate         
@@ -171,13 +180,22 @@ jobs:
             body: body 
           });
 
+    # Remove the runner IP from Key Vault network rules after Terraform completes.
     - name: Remove Runner IP from Key Vault
       if: always()   # ensure we remove the IP even if previous steps fail
       run: |
-        az keyvault network-rule remove \
-          --name key-vault-stirling${{ steps.backend.outputs.environment }} \
-          --resource-group ${{ steps.backend.outputs.resource_group }} \
-          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+        KEY_VAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP  " &>/dev/null; then
+          echo "Removing runner IP from Key Vault network rules"
+            az keyvault network-rule remove \
+              --name "$KEY_VAULT_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — nothing to remove"
+        fi
 
   # Checkov IaC security scan job
   checkov-scan:
@@ -235,10 +253,18 @@ jobs:
 
     - name: Whitelist Runner IP on Key Vault
       run: |
-        az keyvault network-rule add \
-          --name key-vault-stirling${{ needs.terraform-plan.outputs.environment }} \
-          --resource-group ${{ needs.terraform-plan.outputs.resource_group }} \
-          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+        KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Key Vault found — adding runner IP to network rules"
+          az keyvault network-rule add \
+            --name "$KEYVAULT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — skipping (first deployment)"
+        fi
 
     # Download saved plan from artifacts  
     - name: Download Terraform Plan
@@ -251,13 +277,22 @@ jobs:
       run: | 
         terraform apply -auto-approve tfplan
 
+    # Remove the runner IP from Key Vault network rules after Terraform completes.
     - name: Remove Runner IP from Key Vault
       if: always()   # ensure we remove the IP even if previous steps fail
       run: |
-        az keyvault network-rule remove \
-          --name key-vault-stirling${{ needs.terraform-plan.outputs.environment }} \
-          --resource-group ${{ needs.terraform-plan.outputs.resource_group }} \
-          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+        KEY_VAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP  " &>/dev/null; then
+          echo "Removing runner IP from Key Vault network rules"
+            az keyvault network-rule remove \
+              --name "$KEY_VAULT_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — nothing to remove"
+        fi
         
   k8s-deploy:
     name: 'Deploy to AKS'
