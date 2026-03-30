@@ -16,6 +16,12 @@ resource "azurerm_key_vault" "key_vault" {
   soft_delete_retention_days = 90
   rbac_authorization_enabled = true
 
+  network_acls {
+    default_action = "Deny"
+    bypass         = "AzureServices"
+    ip_rules       = var.allowed_ips
+
+  }
 
   tags = {
     environment = var.environment

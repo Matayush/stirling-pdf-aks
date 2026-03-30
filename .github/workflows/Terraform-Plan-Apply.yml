@@ -75,7 +75,23 @@ jobs:
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ steps.backend.outputs.key }}"
-    
+
+    - name: Azure Login
+      uses:  azure/login@v2
+      with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+    - name: Get Runner IP
+      id: runner-ip
+      run: echo "runnerIP=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+    - name: Whitelist Runner IP on Key Vault
+      run: |
+        az keyvault network-rule add \
+          --name key-vault-stirling${{ steps.backend.outputs.environment }} \
+          --resource-group ${{ steps.backend.outputs.resource_group }} \
+          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+
     # Validates the Terraform configuration files in the current directory.  
     - name: Terraform Validate         
       run: terraform validate
@@ -95,6 +111,7 @@ jobs:
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
+          -var 'allowed_ips=${{ vars.ALLOWED_IPS }}' \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
@@ -154,6 +171,14 @@ jobs:
             body: body 
           });
 
+    - name: Remove Runner IP from Key Vault
+      if: always()   # ensure we remove the IP even if previous steps fail
+      run: |
+        az keyvault network-rule remove \
+          --name key-vault-stirling${{ steps.backend.outputs.environment }} \
+          --resource-group ${{ steps.backend.outputs.resource_group }} \
+          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+
   # Checkov IaC security scan job
   checkov-scan:
     name: 'Checkov Security Scan'
@@ -165,7 +190,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Run Checkov
-      uses: bridgecrewio/checkov-action@master
+      uses: bridgecrewio/checkov-action@v12
       with:
         directory: .
         framework: terraform,kubernetes   # scans both .tf files and k8s/ manifests
@@ -199,6 +224,22 @@ jobs:
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.backendKey }}"
 
+    - name: Azure Login
+      uses:  azure/login@v2
+      with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'  
+    
+    - name: Get Runner IP
+      id: runner-ip
+      run: echo "runnerIP=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+    - name: Whitelist Runner IP on Key Vault
+      run: |
+        az keyvault network-rule add \
+          --name key-vault-stirling${{ needs.terraform-plan.outputs.environment }} \
+          --resource-group ${{ needs.terraform-plan.outputs.resource_group }} \
+          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
+
     # Download saved plan from artifacts  
     - name: Download Terraform Plan
       uses: actions/download-artifact@v4
@@ -209,6 +250,14 @@ jobs:
     - name: Terraform Apply
       run: | 
         terraform apply -auto-approve tfplan
+
+    - name: Remove Runner IP from Key Vault
+      if: always()   # ensure we remove the IP even if previous steps fail
+      run: |
+        az keyvault network-rule remove \
+          --name key-vault-stirling${{ needs.terraform-plan.outputs.environment }} \
+          --resource-group ${{ needs.terraform-plan.outputs.resource_group }} \
+          --ip-address ${{ steps.runner-ip.outputs.runnerIP }}
         
   k8s-deploy:
     name: 'Deploy to AKS'

@@ -9,8 +9,7 @@ variable "location" {
 }
 
 variable "environment" {
-  type = string
-  # default     = "prod"
+  type        = string
   description = "Environment name (e.g., dev, test, prod)"
 }
 
@@ -42,4 +41,10 @@ variable "dns_service_ip" {
   type        = string
   description = "IP address for the Kubernetes DNS service - must be within service_cidr"
   default     = "10.0.2.10"
+}
+
+variable "allowed_ips" {
+  type        = list(string)
+  description = "Static IPs always allowed through Key Vault ACL (e.g. dev machine IP)"
+  default     = []
 }
