@@ -47,3 +47,9 @@ variable "log_analytics_workspace_id" {
   type        = string
   description = "Log Analytics Workspace ID for OMS agent monitoring"
 }
+
+variable "allowed_ips" {
+  type        = list(string)
+  description = "IP ranges allowed to reach the AKS API server"
+  default     = []
+}

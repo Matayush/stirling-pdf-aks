@@ -75,7 +75,32 @@ jobs:
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ steps.backend.outputs.key }}"
-    
+
+    - name: Azure Login
+      uses:  azure/login@v2
+      with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+    - name: Get Runner IP
+      id: runner-ip
+      run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+    # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
+    - name: Whitelist Runner IP on Key Vault
+      run: |
+        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Key Vault found — adding runner IP to network rules"
+          az keyvault network-rule add \
+            --name "$KEYVAULT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — skipping (first deployment)"
+        fi
+
     # Validates the Terraform configuration files in the current directory.  
     - name: Terraform Validate         
       run: terraform validate
@@ -95,6 +120,7 @@ jobs:
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
+          -var 'allowed_ips=${{ vars.ALLOWED_IPS }}' \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
@@ -154,6 +180,23 @@ jobs:
             body: body 
           });
 
+    # Remove the runner IP from Key Vault network rules after Terraform completes.
+    - name: Remove Runner IP from Key Vault
+      if: always()   # ensure we remove the IP even if previous steps fail
+      run: |
+        KEY_VAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Removing runner IP from Key Vault network rules"
+            az keyvault network-rule remove \
+              --name "$KEY_VAULT_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — nothing to remove"
+        fi
+
   # Checkov IaC security scan job
   checkov-scan:
     name: 'Checkov Security Scan'
@@ -165,7 +208,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Run Checkov
-      uses: bridgecrewio/checkov-action@master
+      uses: bridgecrewio/checkov-action@v12
       with:
         directory: .
         framework: terraform,kubernetes   # scans both .tf files and k8s/ manifests
@@ -199,6 +242,31 @@ jobs:
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.backendKey }}"
 
+    - name: Azure Login
+      uses:  azure/login@v2
+      with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'  
+    
+    - name: Get Runner IP
+      id: runner-ip
+      run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+    # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
+    - name: Whitelist Runner IP on Key Vault
+      run: |
+        KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Key Vault found — adding runner IP to network rules"
+          az keyvault network-rule add \
+            --name "$KEYVAULT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — skipping (first deployment)"
+        fi
+
     # Download saved plan from artifacts  
     - name: Download Terraform Plan
       uses: actions/download-artifact@v4
@@ -209,6 +277,23 @@ jobs:
     - name: Terraform Apply
       run: | 
         terraform apply -auto-approve tfplan
+
+    # Remove the runner IP from Key Vault network rules after Terraform completes.
+    - name: Remove Runner IP from Key Vault
+      if: always()   # ensure we remove the IP even if previous steps fail
+      run: |
+        KEY_VAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
+
+        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Removing runner IP from Key Vault network rules"
+            az keyvault network-rule remove \
+              --name "$KEY_VAULT_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        else
+          echo "Key Vault does not exist yet — nothing to remove"
+        fi
         
   k8s-deploy:
     name: 'Deploy to AKS'
@@ -231,6 +316,32 @@ jobs:
       with:
           creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
     
+    # Temporarily whitelist the GitHub Actions runner IP on the AKS API server network ACL to allow kubectl to connect and deploy manifests.
+    - name: Get Runner IP
+      id: runner-ip
+      run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+    
+    - name: Whitelist Runner IP on AKS API Server
+      run: |
+        AKS_EXISTS=$(az aks show \
+          --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+          --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+          --query "name" -o tsv 2>/dev/null || echo "")
+
+        if [ -n "$AKS_EXISTS" ]; then
+          echo "AKS exists — whitelisting runner IP..."
+          az aks update \
+            --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+            --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+            --api-server-authorized-ip-ranges "${{ steps.runner-ip.outputs.ip }}"
+          az aks wait \
+            --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+            --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+            --updated
+        else
+          echo "AKS does not exist yet — skipping whitelist (first deployment)"
+        fi  
+
     - name: Set AKS context
       uses: azure/aks-set-context@v3
       with:
@@ -249,4 +360,22 @@ jobs:
           k8s/deployment-frontend.yaml
           k8s/service-backend.yaml
           k8s/service-frontend.yaml
-         
+
+    # Remove the runner IP from AKS API server network ACL after deployment completes.
+    - name: Remove Runner IP from AKS API Server
+      if: always()
+      run: |
+        AKS_EXISTS=$(az aks show \
+          --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+          --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+          --query "name" -o tsv 2>/dev/null || echo "")
+
+        if [ -n "$AKS_EXISTS" ]; then
+          echo "Removing runner IP from AKS..."
+          az aks update \
+            --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+            --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+            --api-server-authorized-ip-ranges ""
+        else
+          echo "AKS does not exist — nothing to clean up"
+        fi    

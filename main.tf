@@ -18,6 +18,7 @@ module "key_vault" {
   resource_group_name = module.resource_group.name
   location            = module.resource_group.location
   environment         = var.environment
+  allowed_ips         = var.allowed_ips
 }
 
 module "monitoring" {
@@ -39,6 +40,7 @@ module "aks" {
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
   service_cidr               = var.service_cidr
   dns_service_ip             = var.dns_service_ip
+  allowed_ips                = var.allowed_ips
 }
 
 module "acr" {
