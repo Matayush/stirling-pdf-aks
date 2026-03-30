@@ -251,6 +251,7 @@ jobs:
       id: runner-ip
       run: echo "runnerIP=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
+    # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
         KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
