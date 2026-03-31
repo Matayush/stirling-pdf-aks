@@ -101,6 +101,20 @@ jobs:
           echo "Key Vault does not exist yet — skipping (first deployment)"
         fi
 
+    - name: Debug — Confirm Runner IP Was Whitelisted on Key Vault
+      run: |
+        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
+
+        echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
+
+        echo "Current Key Vault allowed IP rules:"
+          az keyvault network-rule list \
+            --name "$KEYVAULT_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "ipRules[].value" \
+            -o tsv   
+
     # Validates the Terraform configuration files in the current directory.  
     - name: Terraform Validate         
       run: terraform validate
@@ -341,6 +355,17 @@ jobs:
         else
           echo "AKS does not exist yet — skipping whitelist (first deployment)"
         fi  
+    
+    - name: Debug — Confirm Runner IP Was Whitelisted
+      run: |
+        echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
+
+        echo "Current AKS authorized IP ranges:"
+          az aks show \
+            --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+            --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+            --query "apiServerAccessProfile.authorizedIpRanges" \
+            -o tsv
 
     - name: Set AKS context
       uses: azure/aks-set-context@v3
