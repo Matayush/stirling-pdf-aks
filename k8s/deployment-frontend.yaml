@@ -28,14 +28,14 @@ spec:
             name: stirling-pdf-frontend-config
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "400m"
+            memory: "1Gi"
+            cpu: "100m"
           limits:
             memory: "3Gi"
             cpu: "1500m"
 
-               # Stirling PDF is a Java/Spring Boot app — takes 30-60s to start
-                # ← gives the app time to boot before other probes kick in
+        # Stirling PDF is a Java/Spring Boot app — takes 30-60s to start
+        # gives the app time to boot before other probes kick in
         startupProbe:           
           httpGet:
             path: /
