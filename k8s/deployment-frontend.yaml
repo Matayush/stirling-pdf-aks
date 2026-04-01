@@ -33,3 +33,28 @@ spec:
           limits:
             memory: "3Gi"
             cpu: "1500m"
+
+               # Stirling PDF is a Java/Spring Boot app — takes 30-60s to start
+                # ← gives the app time to boot before other probes kick in
+        startupProbe:           
+          httpGet:
+            path: /
+            port: 8080
+          failureThreshold: 30   # 30 × 10s = 5 minutes max startup time
+          periodSeconds: 10
+
+        readinessProbe:          # ← only sends traffic when app is truly ready
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+
+        livenessProbe:           # ← restarts pod if app becomes unhealthy
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          failureThreshold: 4
