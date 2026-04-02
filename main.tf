@@ -34,7 +34,6 @@ module "aks" {
   location                   = module.resource_group.location
   environment                = var.environment
   aks_subnet_id              = module.networking.aks_subnet_id
-  node_count                 = var.node_count
   vm_size                    = var.vm_size
   disk_encryption_set_id     = module.key_vault.disk_encryption_set_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id

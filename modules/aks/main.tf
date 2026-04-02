@@ -24,7 +24,6 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   default_node_pool {
     name                        = "default"
-    node_count                  = var.node_count
     vm_size                     = var.vm_size
     vnet_subnet_id              = var.aks_subnet_id
     host_encryption_enabled     = true # free - encrypts temp disks, caches and data flowstores with platform-managed keys, satisfies encryption requirements for this workload CKV_AZURE_227
@@ -32,9 +31,16 @@ resource "azurerm_kubernetes_cluster" "aks" {
     max_pods                    = 110         # default Azure CNI overlay value, satisfies CKV_AZURE_168
     os_disk_type                = "Ephemeral" # CKV_AZURE_226 - Ephemeral OS disks provide better performance and are suitable for stateless workloads, satisfies encryption requirements for this workload with host_encryption_enabled=true
     os_disk_size_gb             = 30
-    #enable_auto_scaling = true
-    #min_count           = 0   # ← scales to 0 when idle
-    #max_count           = 1
+    
+    # Spot instances
+    priority        = "Spot"
+    eviction_policy = "Delete"
+    spot_max_price  = -1        # pay up to on-demand price, maximizes availability
+    
+    # Cluster Autoscaler
+    enable_auto_scaling = true
+    min_count           = 1  
+    max_count           = 3
   }
 
   network_profile {
