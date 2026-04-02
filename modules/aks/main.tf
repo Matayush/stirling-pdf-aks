@@ -31,16 +31,11 @@ resource "azurerm_kubernetes_cluster" "aks" {
     max_pods                    = 110         # default Azure CNI overlay value, satisfies CKV_AZURE_168
     os_disk_type                = "Ephemeral" # CKV_AZURE_226 - Ephemeral OS disks provide better performance and are suitable for stateless workloads, satisfies encryption requirements for this workload with host_encryption_enabled=true
     os_disk_size_gb             = 30
-    
-    # Spot instances
-    priority        = "Spot"
-    eviction_policy = "Delete"
-    spot_max_price  = -1        # pay up to on-demand price, maximizes availability
-    
+
     # Cluster Autoscaler
-    enable_auto_scaling = true
-    min_count           = 1  
-    max_count           = 3
+    auto_scaling_enabled = true
+    min_count            = 1
+    max_count            = 3
   }
 
   network_profile {
