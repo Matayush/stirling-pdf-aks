@@ -8,12 +8,12 @@ resource "azurerm_key_vault" "key_vault" {
   # checkov:skip=CKV2_AZURE_32:Key Vault private endpoint deferred — requires Private Link
   # checkov:skip=CKV_AZURE_189:Required private endpoint SKU not available in Free tier, standard SKU with network ACLs provides sufficient security for dev/test environments, to be revisited for prod with Private Link and/or Firewall rules.  
 
-  name                       = "key-vault-stirling${var.environment}"
+  name                       = "kv-stirling${var.environment}"
   resource_group_name        = var.resource_group_name
   location                   = var.location
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  purge_protection_enabled   = true
+  purge_protection_enabled   = false # disabled for dev/test, should to be enabled for prod with appropriate access controls and monitoring in place
   soft_delete_retention_days = 90
   rbac_authorization_enabled = true
 
