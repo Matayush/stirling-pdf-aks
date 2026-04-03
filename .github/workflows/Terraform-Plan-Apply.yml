@@ -291,18 +291,6 @@ jobs:
       with:
         name: tfplan
 
-    - name: Wait for Key Vault firewall to propagate
-      run: |
-        MAX_RETRIES=12
-          COUNT=0
-          until az keyvault key list --vault-name key-vault-stirlingtest \
-                --query "[]" --output none 2>/dev/null; do
-            COUNT=$((COUNT + 1))
-            [ "$COUNT" -ge "$MAX_RETRIES" ] && echo "Timed out" && exit 1
-            echo "Attempt $COUNT/$MAX_RETRIES — retrying in 10s..."
-            sleep 10
-          done
-
     # Terraform Apply
     - name: Terraform Apply
       run: | 
