@@ -19,12 +19,6 @@ variable "vnet_cidr" {
   default     = "10.10.0.0/16"
 }
 
-variable "node_count" {
-  type        = number
-  description = "Number of nodes in the default node pool"
-  default     = 1
-}
-
 variable "vm_size" {
   type        = string
   description = "VM size for AKS nodes"
