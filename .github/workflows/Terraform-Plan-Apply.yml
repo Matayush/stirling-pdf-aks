@@ -274,13 +274,14 @@ jobs:
       run: |
         KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
         RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
+        RUNNER_IP="${{ steps.runner-ip.outputs.ip }}"
 
         if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
           echo "Key Vault found — adding runner IP to network rules"
           az keyvault network-rule add \
             --name "$KEYVAULT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --ip-address "${{ steps.runner-ip.outputs.ip }}"
+            --ip-address "$RUNNER_IP/32"
         else
           echo "Key Vault does not exist yet — skipping (first deployment)"
         fi
