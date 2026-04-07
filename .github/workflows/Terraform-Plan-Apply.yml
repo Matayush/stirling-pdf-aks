@@ -290,13 +290,19 @@ jobs:
       run: |
         KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
-        az keyvault network-rule add \
+        RUNNER_IP="${{ steps.runner-ip.outputs.ip }}"
+
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+          echo "Key Vault found — adding runner IP to network rules"
+          az keyvault network-rule add \
             --name "$KEYVAULT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --ip-address "${{ steps.runner-ip.outputs.ip }}"
-        sleep 10  # wait for the network rule to propagate before applying the rest of the changes
-    
-      # Download saved plan from artifacts  
+        else
+          echo "Key Vault does not exist yet — skipping (first deployment)"
+        fi
+
+    # Download saved plan from artifacts  
     - name: Download Terraform Plan
       uses: actions/download-artifact@v4
       with:
