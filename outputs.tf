@@ -14,3 +14,7 @@ output "log_analytics_workspace_id" {
   value       = module.monitoring.log_analytics_workspace_id
   description = "Log Analytics Workspace ID — use for diagnostics settings on other resources"
 }
+
+output "key_vault_name" {
+  value = module.key_vault.key_vault_name
+}

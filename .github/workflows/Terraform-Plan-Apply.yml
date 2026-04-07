@@ -5,7 +5,7 @@ name: 'Terraform Plan/Apply'
 # and automatically cancels older runs when new commits arrive on the same branch.
 concurrency:
   group: terraform-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
@@ -84,11 +84,18 @@ jobs:
     - name: Get Runner IP
       id: runner-ip
       run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+    
+      # Fetch KV name from Terraform state output to use in later steps
+    - name: Get Key Vault Name
+      id: kv-name
+      run: |
+        KV_NAME=$(terraform output -raw key_vault_name 2>/dev/null || echo "")
+        echo "name=${KV_NAME}" >> $GITHUB_OUTPUT
 
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
 
         if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
@@ -103,7 +110,7 @@ jobs:
 
     - name: Debug — Confirm Runner IP Was Whitelisted on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
 
         echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
@@ -202,13 +209,13 @@ jobs:
     - name: Remove Runner IP from Key Vault
       if: always()   # ensure we remove the IP even if previous steps fail
       run: |
-        KEY_VAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
 
-        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
           echo "Removing runner IP from Key Vault network rules"
             az keyvault network-rule remove \
-              --name "$KEY_VAULT_NAME" \
+              --name "$KEYVAULT_NAME" \
               --resource-group "$RESOURCE_GROUP" \
               --ip-address "${{ steps.runner-ip.outputs.ip }}"
         else
@@ -269,23 +276,27 @@ jobs:
       id: runner-ip
       run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
-    # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
+    #create ONLY the Key Vault resource first so we can whitelist the runner IP before applying the rest of the changes.
+    - name: Terraform Apply - Key Vault resource only
+      run: terraform apply -auto-approve -target=module.key_vault.azurerm_key_vault.key_vault
+    
+    # Fetch KV name from Terraform state output to use in later steps
+    - name: Get Key Vault Name
+      id: kv-name
+      run: echo "name=$(terraform output -raw key_vault_name)" >> $GITHUB_OUTPUT    
+      
+    # Whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
-
-        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
-          echo "Key Vault found — adding runner IP to network rules"
-          az keyvault network-rule add \
+        az keyvault network-rule add \
             --name "$KEYVAULT_NAME" \
             --resource-group "$RESOURCE_GROUP" \
             --ip-address "${{ steps.runner-ip.outputs.ip }}"
-        else
-          echo "Key Vault does not exist yet — skipping (first deployment)"
-        fi
-
-    # Download saved plan from artifacts  
+        sleep 10  # wait for the network rule to propagate before applying the rest of the changes
+    
+      # Download saved plan from artifacts  
     - name: Download Terraform Plan
       uses: actions/download-artifact@v4
       with:
@@ -300,13 +311,13 @@ jobs:
     - name: Remove Runner IP from Key Vault
       if: always()   # ensure we remove the IP even if previous steps fail
       run: |
-        KEY_VAULT_NAME="key-vault-stirling${{ needs.terraform-plan.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.kv-name.outputs.name }}"
         RESOURCE_GROUP="${{ needs.terraform-plan.outputs.resource_group }}"
 
-        if az keyvault show --name "$KEY_VAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+        if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
           echo "Removing runner IP from Key Vault network rules"
             az keyvault network-rule remove \
-              --name "$KEY_VAULT_NAME" \
+              --name "$KEYVAULT_NAME" \
               --resource-group "$RESOURCE_GROUP" \
               --ip-address "${{ steps.runner-ip.outputs.ip }}"
         else
@@ -348,11 +359,19 @@ jobs:
 
         if [ -n "$AKS_EXISTS" ]; then
           echo "AKS exists — whitelisting runner IP..."
+          CURRENT_IPS=$(az aks show \
+            --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
+            --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+            --query "apiServerAccessProfile.authorizedIpRanges" \
+            -o tsv | tr '\n' ',' | sed 's/,$//')
+          echo "previous_ips=${CURRENT_IPS}" >> $GITHUB_ENV
+          
           az aks update \
             --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
             --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
-            --api-server-authorized-ip-ranges "${{ steps.runner-ip.outputs.ip }}"
-          az aks wait \
+            --api-server-authorized-ip-ranges "${CURRENT_IPS:+${CURRENT_IPS},}${{ steps.runner-ip.outputs.ip }}"
+          
+            az aks wait \
             --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
             --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
             --updated
@@ -410,10 +429,11 @@ jobs:
 
         if [ -n "$AKS_EXISTS" ]; then
           echo "Removing runner IP from AKS..."
+          RESTORE="${{ env.previous_ips }}"
           az aks update \
             --name "aks-${{ needs.terraform-plan.outputs.environment }}" \
             --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
-            --api-server-authorized-ip-ranges ""
+            --api-server-authorized-ip-ranges "$RESTORE"
         else
           echo "AKS does not exist — nothing to clean up"
         fi    
