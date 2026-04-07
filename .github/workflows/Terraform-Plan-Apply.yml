@@ -89,7 +89,12 @@ jobs:
     - name: Get Key Vault Name
       id: kv-name
       run: |
-        KV_NAME=$(terraform output -raw key_vault_name 2>/dev/null || echo "")
+        # Check if state has any outputs before trying to read one
+        if terraform output -json 2>/dev/null | grep -q '"key_vault_name"'; then
+          KV_NAME=$(terraform output -raw key_vault_name 2>/dev/null)
+        else
+          KV_NAME=""
+        fi
         echo "name=${KV_NAME}" >> $GITHUB_OUTPUT
 
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
