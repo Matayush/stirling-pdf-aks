@@ -37,6 +37,7 @@ jobs:
       backendKey: ${{ steps.backend.outputs.key }}
       environment: ${{ steps.backend.outputs.environment }}
       resource_group: ${{ steps.backend.outputs.resource_group }}
+      kv_name: ${{ steps.backend.outputs.kv_name }}
 
     steps:
     - name: Checkout
@@ -56,14 +57,17 @@ jobs:
           echo "key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT  
           echo "environment=dev" >> $GITHUB_OUTPUT
           echo "resource_group=rg-stirling-dev" >> $GITHUB_OUTPUT
+          echo "kv_name=kv-stirlingdev" >> $GITHUB_OUTPUT
         elif [[ "${{ github.ref_name }}" == "test" ]]; then 
           echo "key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=test" >> $GITHUB_OUTPUT
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
+          echo "kv_name=kv-stirlingtest" >> $GITHUB_OUTPUT
         else 
           echo "key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=prod" >> $GITHUB_OUTPUT
           echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
+          echo "kv_name=kv-stirlingprod" >> $GITHUB_OUTPUT
         fi
 
     - name: Terraform Init
@@ -81,7 +85,7 @@ jobs:
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.backend.outputs.kv_name }}"
         RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
 
         if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
@@ -96,7 +100,7 @@ jobs:
 
     - name: Debug — Confirm Runner IP Was Whitelisted on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ steps.backend.outputs.environment }}"
+        KEYVAULT_NAME="${{ steps.backend.outputs.kv_name }}"
         RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
 
         echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
@@ -186,7 +190,7 @@ jobs:
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-destroy-plan.outputs.environment }}"
+        KEYVAULT_NAME="${{ needs.terraform-destroy-plan.outputs.kv_name }}"
         RESOURCE_GROUP="${{ needs.terraform-destroy-plan.outputs.resource_group }}"
 
         if az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
@@ -201,7 +205,7 @@ jobs:
 
     - name: Debug — Confirm Runner IP Was Whitelisted on Key Vault
       run: |
-        KEYVAULT_NAME="key-vault-stirling${{ needs.terraform-destroy-plan.outputs.environment }}"
+        KEYVAULT_NAME="${{ needs.terraform-destroy-plan.outputs.kv_name }}"
         RESOURCE_GROUP="${{ needs.terraform-destroy-plan.outputs.resource_group }}"
 
         echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
