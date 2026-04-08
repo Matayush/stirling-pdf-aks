@@ -283,7 +283,13 @@ jobs:
 
     #create ONLY the Key Vault resource first so we can whitelist the runner IP before applying the rest of the changes.
     - name: Terraform Apply - Key Vault resource only
-      run: terraform apply -auto-approve -target=module.key_vault.azurerm_key_vault.key_vault
+      run: |
+        terraform apply -auto-approve \
+          -target=module.key_vault.azurerm_key_vault.key_vault \
+          -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+          -var "location=${{ vars.location }}" \
+          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
+          -var 'allowed_ips=${{ vars.ALLOWED_IPS }}'
     
     # Fetch KV name from Terraform state output to use in later steps
     - name: Get Key Vault Name
