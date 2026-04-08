@@ -35,6 +35,7 @@ jobs:
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
       #this is needed since we are running terraform with read-only permissions
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
@@ -147,6 +148,7 @@ jobs:
       run: |
         export exitcode=0
         terraform plan \
+          -lock-timeout=5m \
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
@@ -285,6 +287,7 @@ jobs:
     - name: Terraform Apply - Key Vault resource only
       run: |
         terraform apply -auto-approve \
+          -lock-timeout=10m \
           -target=module.key_vault.azurerm_key_vault.key_vault \
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
@@ -321,8 +324,9 @@ jobs:
 
     # Terraform Apply
     - name: Terraform Apply
+      timeout-minutes: 30
       run: | 
-        terraform apply -auto-approve tfplan
+        terraform apply -auto-approve -lock-timeout=10m tfplan
 
     # Remove the runner IP from Key Vault network rules after Terraform completes.
     - name: Remove Runner IP from Key Vault
