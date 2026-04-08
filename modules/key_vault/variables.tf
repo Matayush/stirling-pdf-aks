@@ -18,3 +18,9 @@ variable "allowed_ips" {
   description = "Static IPs allowed through Key Vault network ACL"
   default     = []
 }
+
+variable "runner_ip" {
+  type        = string
+  default     = ""
+  description = "Temporary GitHub Actions runner IP for pipeline access"
+}
