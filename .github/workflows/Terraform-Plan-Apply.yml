@@ -144,8 +144,7 @@ jobs:
           -lock-timeout=5m \
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
-        # -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
+          -var "resource_group_name=${{ steps.backend.outputs.resource_group }}"
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
@@ -280,7 +279,6 @@ jobs:
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
-        #  -var "allowed_ips=${{ vars.ALLOWED_IPS }}"
         
     # Whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
@@ -298,8 +296,7 @@ jobs:
           -lock-timeout=5m \
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
-        #  -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
+          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}"
           -no-color -out tfplan_apply
     
     # Terraform Apply
