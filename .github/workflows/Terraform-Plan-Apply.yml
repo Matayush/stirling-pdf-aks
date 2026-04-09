@@ -107,24 +107,6 @@ jobs:
           echo "Key Vault does not exist yet — skipping (first deployment)"
         fi
 
-    - name: Debug — Confirm Runner IP Was Whitelisted on Key Vault
-      run: |
-        KEYVAULT_NAME="${{ steps.backend.outputs.kv_name }}"
-        RESOURCE_GROUP="${{ steps.backend.outputs.resource_group }}"
-
-        echo "Runner IP: ${{ steps.runner-ip.outputs.ip }}"
-
-        if [ -n "$KEYVAULT_NAME" ] && az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
-          echo "Current Key Vault allowed IP rules:"
-            az keyvault network-rule list \
-              --name "$KEYVAULT_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --query "ipRules[].value" \
-              -o tsv
-        else
-          echo "Key Vault does not exist yet — nothing to check (first deployment)"
-        fi  
-
     # Validates the Terraform configuration files in the current directory.  
     - name: Terraform Validate         
       run: terraform validate
@@ -155,13 +137,6 @@ jobs:
         else 
           exit 0
         fi
-    
-    # Save plan to artifacts  
-    #- name: Publish Terraform Plan
-    #  uses: actions/upload-artifact@v4
-    #  with:
-    #    name: tfplan
-    #    path: tfplan
 
     # Create string output of Terraform Plan
     - name: Create String Output
