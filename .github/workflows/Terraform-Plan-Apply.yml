@@ -30,6 +30,7 @@ env:
   ARM_CLIENT_SECRET: "${{ secrets.ARM_CLIENT_SECRET }}"
   ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
   ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+  TF_VAR_allowed_ips: ${{ vars.ALLOWED_IPS }}
 
 jobs:
   terraform-plan:
@@ -144,7 +145,7 @@ jobs:
           -var "environment=${{ steps.backend.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ steps.backend.outputs.resource_group }}" \
-          -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
+        # -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
@@ -279,7 +280,7 @@ jobs:
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
-          -var "allowed_ips=${{ vars.ALLOWED_IPS }}"
+        #  -var "allowed_ips=${{ vars.ALLOWED_IPS }}"
         
     # Whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
@@ -298,7 +299,7 @@ jobs:
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
           -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
-          -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
+        #  -var "allowed_ips=${{ vars.ALLOWED_IPS }}" \
           -no-color -out tfplan_apply
     
     # Terraform Apply
