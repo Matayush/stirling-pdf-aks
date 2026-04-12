@@ -278,7 +278,7 @@ jobs:
           -lock-timeout=5m \
           -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}"
+          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
           -no-color -out tfplan_apply
     
     # Terraform Apply
