@@ -251,7 +251,17 @@ jobs:
       id: runner-ip
       run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
     
-     # Create KV first so whitelist step always has something to target
+    #  Merge runner IP into TF_VAR_allowed_ips BEFORE any apply ──
+    # This prevents drift — Terraform owns the runner IP from the start  
+    - name: Build Combined Allowed IPs (static + runner)
+      run: |
+        RUNNER_IP="${{ steps.runner-ip.outputs.ip }}"
+        STATIC_IPS='${{ vars.ALLOWED_IPS }}'
+        COMBINED=$(echo "$STATIC_IPS" | jq --arg ip "$RUNNER_IP" '. + [$ip]')
+        echo "TF_VAR_allowed_ips=$COMBINED" >> $GITHUB_ENV
+        echo "Combined IPs: $COMBINED"
+
+    # Create KV first so whitelist step always has something to target
     - name: Terraform Apply — Key Vault Only
       run: |
         terraform apply \
@@ -263,15 +273,14 @@ jobs:
           -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" 
         
     # Whitelist the GitHub Actions runner IP on the Key Vault network ACL.
-    - name: Whitelist Runner IP on Key Vault
-      run: |
-        az keyvault network-rule add \
-        --name "${{ needs.terraform-plan.outputs.kv_name }}" \
-        --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
-        --ip-address "${{ steps.runner-ip.outputs.ip }}"
+    #- name: Whitelist Runner IP on Key Vault
+    #  run: |
+    #    az keyvault network-rule add \
+    #    --name "${{ needs.terraform-plan.outputs.kv_name }}" \
+    #    --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+    #    --ip-address "${{ steps.runner-ip.outputs.ip }}"
 
-    # Re-plan with this job's runner IP in allowed_ips. Required because:
-    # 1. The apply runner has a different IP than the plan runner.
+    # Re-plan with this job's runner IP in allowed_ips.
     - name: Terraform Re-Plan with current Runner IP
       run: | 
         terraform plan \
@@ -287,14 +296,27 @@ jobs:
       run: | 
         terraform apply -auto-approve -lock-timeout=10m tfplan_apply
 
-    # Remove the runner IP from Key Vault network rules after Terraform completes.
-    - name: Remove Runner IP from Key Vault
+    # Lock down KV — remove runner IP via Terraform to ensure it gets removed even if previous whitelist step was manual or failed for some reason.
+    - name: Lock Down Key Vault (Remove Runner IP from ACL)
       if: always()
+      env:
+        TF_VAR_allowed_ips: ${{ vars.ALLOWED_IPS }}
       run: |
-        az keyvault network-rule remove \
-          --name "${{ needs.terraform-plan.outputs.kv_name }}" \
-          --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
-          --ip-address "${{ steps.runner-ip.outputs.ip }}"
+        terraform apply -auto-approve -lock-timeout=5m \
+          -target=module.key_vault.azurerm_key_vault.key_vault \
+          -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+          -var "location=${{ vars.location }}" \
+          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}"
+        echo "KV locked down — runner IP removed from ip_rules"    
+    
+    # Remove the runner IP from Key Vault network rules after Terraform completes.
+    #- name: Remove Runner IP from Key Vault
+    #  if: always()
+    #  run: |
+    #    az keyvault network-rule remove \
+    #      --name "${{ needs.terraform-plan.outputs.kv_name }}" \
+    #      --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+    #      --ip-address "${{ steps.runner-ip.outputs.ip }}"
         
   k8s-deploy:
     name: 'Deploy to AKS'
