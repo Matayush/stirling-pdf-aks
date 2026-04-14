@@ -255,9 +255,9 @@ jobs:
     # This prevents drift — Terraform owns the runner IP from the start  
     - name: Build Combined Allowed IPs (static + runner)
       run: |
-        RUNNER_IP="${{ steps.runner-ip.outputs.ip }}"
+        RUNNER_IP="${{ steps.runner-ip.outputs.ip }}/32"
         STATIC_IPS='${{ vars.ALLOWED_IPS }}'
-        COMBINED=$(echo "$STATIC_IPS" | jq --arg ip "$RUNNER_IP" '. + [$ip]')
+        COMBINED=$(echo "$STATIC_IPS" | jq -c --arg ip "$RUNNER_IP" '. + [$ip]')
         echo "TF_VAR_allowed_ips=$COMBINED" >> $GITHUB_ENV
         echo "Combined IPs: $COMBINED"
 
