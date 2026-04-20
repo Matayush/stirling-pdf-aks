@@ -24,7 +24,7 @@ Security and compliance are validated with **Checkov**, scanning both **Terrafor
 
 ## 🏗️ Architecture
 
-<img width="3502" height="2762" alt="diagram-export-4-17-2026-3_11_23-PM" src="https://github.com/user-attachments/assets/4c8460eb-3f67-4ee2-9c17-03fd25875bc1" />
+![architecture](.github/assets/architecture-diagram.png)
 
 
 ## 🔐 Security Highlights
@@ -374,7 +374,20 @@ terraform destroy \
 
 ## 📸 Screenshots
 
-> *(Coming soon — Stirling PDF running on AKS)*
+### CI/CD Pipeline — All Jobs Passing
+![pipeline](.github/assets/pipeline-success.png)
+
+### Checkov Security Scan — 30 Passed / 0 Failed
+![checkov](.github/assets/checkov-results.png)
+
+### Terraform Apply — Live Infrastructure Provisioning
+![apply](.github/assets/terraform-apply.png)
+
+### Cluster Autoscaler — Scaling from 1 to 3 Nodes
+![autoscaler](.github/assets/cluster-autoscaler.png)
+
+### Stirling PDF Running on AKS
+![app](.github/assets/stirling-pdf-ui.png)
 
 ---
 
