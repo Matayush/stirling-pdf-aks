@@ -12,6 +12,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   sku_tier = "Free"
   # ← Free control plane (no SLA guarantee)
+  oidc_issuer_enabled       = true  
+  workload_identity_enabled = true
 
   identity {
     type = "SystemAssigned"
