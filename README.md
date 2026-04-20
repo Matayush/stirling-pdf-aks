@@ -376,7 +376,7 @@ terraform destroy \
 ## 📸 Screenshots
 
 ### Architecture Overview
-![architecture](.github/assets/architecture-diagram.jpg)
+![architecture](.github/assets/architecture-diagram.png)
 
 ### CI/CD Pipeline — All Jobs Passing
 ![pipeline](.github/assets/pipeline-success.jpg)
