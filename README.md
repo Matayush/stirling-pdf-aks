@@ -24,37 +24,8 @@ Security and compliance are validated with **Checkov**, scanning both **Terrafor
 
 ## 🏗️ Architecture
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                          Microsoft Azure                             │
-│                                                                      │
-│  ┌───────────────────────────────────────────────────────────────┐   │
-│  │                       Resource Group                         │   │
-│  │                                                               │   │
-│  │  ┌──────────┐  ┌──────────────┐  ┌────────────────────────┐  │   │
-│  │  │  Azure   │  │ Azure  Key   │  │      AKS Cluster       │  │   │
-│  │  │   ACR    │  │    Vault     │  │  (Azure CNI + Cilium)  │  │   │
-│  │  │          │  │(Secret Rot.) │  │                        │  │   │
-│  │  └────┬─────┘  └──────┬───────┘  │  ┌──────────────────┐  │  │   │
-│  │       │               │          │  │  Frontend Pod    │  │  │   │
-│  │       │ Pull images   │ Secrets  │  │   (React UI)     │  │  │   │
-│  │       └───────────────┴──────────│  └────────┬─────────┘  │  │   │
-│  │                                  │           │            │  │   │
-│  │  ┌──────────────────┐            │  ┌────────▼─────────┐  │  │   │
-│  │  │ Azure Monitoring │◀───────────│  │  Backend Pod     │  │  │   │
-│  │  │  (OMS + Logs)    │            │  │ (Stirling PDF)   │  │  │   │
-│  │  └──────────────────┘            │  └──────────────────┘  │  │   │
-│  │                                  │  Autoscaler: 1–3 nodes  │  │   │
-│  │                                  └────────────────────────┘  │   │
-│  │                         Networking (VNet 10.10.0.0/16)       │   │
-│  └───────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-                    ▲
-         GitHub Actions CI/CD
-     (Plan → Checkov → Apply → Deploy)
-```
+![architecture](.github/assets/architecture-diagram.png)
 
----
 
 ## 🔐 Security Highlights
 
@@ -393,16 +364,34 @@ terraform destroy \
 
 ## 🗺️ Roadmap
 
-- [ ] Add full Azure Monitor / Container Insights verification
+- [x] Checkov IaC + manifest scanning integrated (soft-fail mode)
+- [x] Cluster Autoscaler — verified scaling from 1 to 3 nodes
+- [ ] Move Checkov from `soft_fail: true` to enforced compliance gate
 - [ ] Migrate Kubernetes manifests to Helm charts
 - [ ] Integrate Trivy image scanning in CI or ACR
-- [ ] Load test HPA + Cluster Autoscaler behaviour
+- [ ] Add full Azure Monitor / Container Insights verification
 
 ---
 
 ## 📸 Screenshots
 
-> *(Coming soon — Stirling PDF running on AKS)*
+### Architecture Overview
+![architecture](.github/assets/architecture-diagram.jpg)
+
+### CI/CD Pipeline — All Jobs Passing
+![pipeline](.github/assets/pipeline-success.jpg)
+
+### Checkov Security Scan — 30 Passed / 0 Failed
+![checkov](.github/assets/checkov-results.png)
+
+### Terraform Apply — Live Infrastructure Provisioning
+![apply](.github/assets/terraform-apply.jpg)
+
+### Cluster Autoscaler — Scaling from 1 to 3 Nodes
+![autoscaler](.github/assets/cluster-autoscaler.jpg)
+
+### Stirling PDF Running on AKS
+![app](.github/assets/stirling-pdf-ui.jpg)
 
 ---
 
