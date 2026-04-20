@@ -374,6 +374,9 @@ terraform destroy \
 
 ## 📸 Screenshots
 
+### Stirling PDF Running on AKS
+![app](.github/assets/stirling-pdf-ui.jpg)
+
 ### CI/CD Pipeline — All Jobs Passing
 ![pipeline](.github/assets/pipeline-success.jpg)
 
@@ -386,8 +389,7 @@ terraform destroy \
 ### Cluster Autoscaler — Scaling from 1 to 3 Nodes
 ![autoscaler](.github/assets/cluster-autoscaler.jpg)
 
-### Stirling PDF Running on AKS
-![app](.github/assets/stirling-pdf-ui.jpg)
+
 
 ---
 
