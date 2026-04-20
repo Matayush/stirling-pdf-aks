@@ -364,18 +364,19 @@ terraform destroy \
 
 ## 🗺️ Roadmap
 
-- [ ] Add full Azure Monitor / Container Insights verification
+- [x] Checkov IaC + manifest scanning integrated (soft-fail mode)
+- [x] Cluster Autoscaler — verified scaling from 1 to 3 nodes
+- [ ] Move Checkov from `soft_fail: true` to enforced compliance gate
 - [ ] Migrate Kubernetes manifests to Helm charts
 - [ ] Integrate Trivy image scanning in CI or ACR
-- [ ] Load test HPA + Cluster Autoscaler behaviour
-- [ ] Move Checkov from `soft_fail: true` to enforced compliance gate
+- [ ] Add full Azure Monitor / Container Insights verification
 
 ---
 
 ## 📸 Screenshots
 
-### Stirling PDF Running on AKS
-![app](.github/assets/stirling-pdf-ui.jpg)
+### Architecture Overview
+![architecture](.github/assets/architecture-diagram.jpg)
 
 ### CI/CD Pipeline — All Jobs Passing
 ![pipeline](.github/assets/pipeline-success.jpg)
@@ -389,7 +390,8 @@ terraform destroy \
 ### Cluster Autoscaler — Scaling from 1 to 3 Nodes
 ![autoscaler](.github/assets/cluster-autoscaler.jpg)
 
-
+### Stirling PDF Running on AKS
+![app](.github/assets/stirling-pdf-ui.jpg)
 
 ---
 
