@@ -24,37 +24,8 @@ Security and compliance are validated with **Checkov**, scanning both **Terrafor
 
 ## 🏗️ Architecture
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                          Microsoft Azure                             │
-│                                                                      │
-│  ┌───────────────────────────────────────────────────────────────┐   │
-│  │                       Resource Group                         │   │
-│  │                                                               │   │
-│  │  ┌──────────┐  ┌──────────────┐  ┌────────────────────────┐  │   │
-│  │  │  Azure   │  │ Azure  Key   │  │      AKS Cluster       │  │   │
-│  │  │   ACR    │  │    Vault     │  │  (Azure CNI + Cilium)  │  │   │
-│  │  │          │  │(Secret Rot.) │  │                        │  │   │
-│  │  └────┬─────┘  └──────┬───────┘  │  ┌──────────────────┐  │  │   │
-│  │       │               │          │  │  Frontend Pod    │  │  │   │
-│  │       │ Pull images   │ Secrets  │  │   (React UI)     │  │  │   │
-│  │       └───────────────┴──────────│  └────────┬─────────┘  │  │   │
-│  │                                  │           │            │  │   │
-│  │  ┌──────────────────┐            │  ┌────────▼─────────┐  │  │   │
-│  │  │ Azure Monitoring │◀───────────│  │  Backend Pod     │  │  │   │
-│  │  │  (OMS + Logs)    │            │  │ (Stirling PDF)   │  │  │   │
-│  │  └──────────────────┘            │  └──────────────────┘  │  │   │
-│  │                                  │  Autoscaler: 1–3 nodes  │  │   │
-│  │                                  └────────────────────────┘  │   │
-│  │                         Networking (VNet 10.10.0.0/16)       │   │
-│  └───────────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────────┘
-                    ▲
-         GitHub Actions CI/CD
-     (Plan → Checkov → Apply → Deploy)
-```
+<img width="3502" height="2762" alt="diagram-export-4-17-2026-3_11_23-PM" src="https://github.com/user-attachments/assets/4c8460eb-3f67-4ee2-9c17-03fd25875bc1" />
 
----
 
 ## 🔐 Security Highlights
 
