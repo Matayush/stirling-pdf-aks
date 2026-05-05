@@ -69,9 +69,10 @@ Security and compliance are validated with **Checkov**, scanning both **Terrafor
 ```text
 stirling-pdf-aks/
 ├── .github/
-│   └── workflows/
-│       ├── Terraform-Plan-Apply.yml    # Plan → Checkov → Apply → AKS Deploy
-│       └── Terraform-Destroy-All.yml   # Manual destroy with confirmation and approval gate
+│   └──  workflows/
+│        ├── Terraform-Plan-Apply.yml    # Plan → Checkov → Apply (triggered on .tf changes)
+│        ├── K8s deploy.yml              # Image import + AKS manifest deploy (triggered on k8s/ changes)
+│        └── Terraform-Destroy-All.yml   # Manual destroy with confirmation and approval gate
 ├── k8s/
 │   ├── namespace.yaml
 │   ├── configmap-frontend.yaml
@@ -79,7 +80,9 @@ stirling-pdf-aks/
 │   ├── deployment-frontend.yaml
 │   ├── deployment-backend.yaml
 │   ├── service-frontend.yaml
-│   └── service-backend.yaml
+│   ├── service-backend.yaml
+│   ├── hpa-backend.yaml
+│   └── hpa-frontend.yaml
 ├── modules/
 │   ├── acr/
 │   ├── aks/
@@ -169,51 +172,33 @@ Configure these under **Settings → Secrets and variables → Actions**.
 
 ## 🔁 CI/CD Pipelines
 
-### Terraform Plan / Apply workflow
+### Terraform Plan / Apply — `Terraform-Plan-Apply.yml`
+Triggers on push/PR when **`.tf` files change**.
 
-This workflow triggers on **push** and **pull request** for `dev`, `test`, and `main`.
-
-#### Pipeline flow
-
-```text
-push / PR to dev | test | main
-        │
-        ▼
-┌────────────────────┐     ┌────────────────────┐
-│  terraform-plan    │────▶│  checkov-scan      │
-│  (all branches)    │     │  (tf + k8s)        │
-└─────────┬──────────┘     └────────────────────┘
-          │ exit code == 2
-          │ main or test only
-          ▼
-┌────────────────────┐
-│  terraform-apply   │
-│  (two-phase apply) │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│  k8s-deploy        │
-│  (AKS manifests)   │
-└────────────────────┘
-```
+### K8s Deploy — `K8s deploy.yml`  
+Triggers on push when **`k8s/` files change**, or manually via `workflow_dispatch`.
 
 #### Job details
 
-| Job | Runs on | What it does |
+| Job | Workflow | What it does |
 |---|---|---|
-| `terraform-plan` | All branches, push + PR | Sets backend key and environment, runs `init`, `validate`, `fmt -check`, `plan`, and posts plan output to PR comments |
-| `checkov-scan` | All branches | Scans Terraform and Kubernetes manifests, exports SARIF, uploads results to GitHub Security |
-| `terraform-apply` | `main` and `test` only | Runs only when Terraform plan exit code is `2`; applies Key Vault first, re-plans with runner IP, then applies full infrastructure |
-| `k8s-deploy` | After successful apply on `main` and `test` | Temporarily whitelists runner IP on AKS API server, deploys manifests, restores previous IP ranges |
+| `terraform-plan` | Terraform Plan/Apply | Sets backend key and environment, runs `init`, `validate`, `fmt -check`, `plan`, posts plan output to PR |
+| `checkov-scan` | Terraform Plan/Apply | Scans Terraform and Kubernetes manifests, exports SARIF, uploads to GitHub Security |
+| `terraform-apply` | Terraform Plan/Apply | Applies Key Vault first, re-plans with runner IP, then applies full infrastructure |
+| `import-images` | K8s Deploy | Imports `stirling-pdf:latest` from Docker Hub into ACR using `az acr import` |
+| `k8s-deploy` | K8s Deploy | Whitelists runner IP on AKS API server, deploys all manifests including HPAs, restores IP ranges |
 
 #### Branch behaviour
 
-| Branch / Event | Plan | Checkov | Apply | Deploy |
-|---|---|---|---|---|
-| `dev` push | ✅ | ✅ | ❌ | ❌ |
-| `test` push | ✅ | ✅ | ✅ | ✅ |
-| `main` push | ✅ | ✅ | ✅ | ✅ |
+| Branch / Event | TF Plan | Checkov | TF Apply | K8s Deploy |
+| ---|---|---|---|---|
+| `dev` push (.tf change) | ✅ | ✅ | ❌ | ❌ |
+| `test` push (.tf change) | ✅ | ✅ | ✅ | ❌ |
+| `test` push (k8s/ change) | ❌ | ❌ | ❌ | ✅ |
+| `main` push (.tf change) | ✅ | ✅ | ✅ | ❌ |
+| `main` push (k8s/ change) | ❌ | ❌ | ❌ | ✅ |
 | Pull Request | ✅ | ✅ | ❌ | ❌ |
+| `workflow_dispatch` (k8s) | ❌ | ❌ | ❌ | ✅ |
 
 #### Key implementation details
 
@@ -366,7 +351,9 @@ terraform destroy \
 
 - [x] Checkov IaC + manifest scanning integrated (soft-fail mode)
 - [x] Cluster Autoscaler — verified scaling from 1 to 3 nodes
-- [ ] Move Checkov from `soft_fail: true` to enforced compliance gate
+- [x] Split Terraform and K8s deploy into separate workflows
+- [x] HPA added for frontend (max 4 replicas) and backend (max 3 replicas)
+- [x] Workflow path filters — Terraform only triggers on .tf changes, K8s only on k8s/ changes
 - [ ] Migrate Kubernetes manifests to Helm charts
 - [ ] Integrate Trivy image scanning in CI or ACR
 - [ ] Add full Azure Monitor / Container Insights verification
