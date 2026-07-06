@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-stirling-${var.environment}"
+  name     = "rg-stirling1-${var.environment}"
   location = var.location
 
   tags = {
