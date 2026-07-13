@@ -33,11 +33,12 @@ env:
   TF_VAR_allowed_ips: ${{ vars.ALLOWED_IPS }}
 
 jobs:
+  # This custom exit-code handling is needed since the plan job runs with 
+  # read-only permissions, allowing us to safely pass the results to the apply job.
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # this is needed since we are running terraform with read-only permissions
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
       environment: ${{ steps.env.outputs.environment }}
