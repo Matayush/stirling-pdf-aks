@@ -17,7 +17,7 @@ on:
         required: true
         default: 'test'
         type: choice
-        options: [test, main]
+        options: [test, prod]
 
 permissions:
   contents: read
@@ -155,20 +155,43 @@ jobs:
         resource-group: ${{ steps.env.outputs.resource_group }}
         cluster-name: ${{ steps.env.outputs.cluster_name }}
 
+    - name: Debug workspace
+      run: |
+        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+        pwd
+        ls -la
+        ls -la k8s
+        test -f "$GITHUB_WORKSPACE/k8s/hpa-backend.yaml" && echo "found hpa-backend"
+        test -f "$GITHUB_WORKSPACE/k8s/hpa-frontend.yaml" && echo "found hpa-frontend"
+
     - name: Deploy manifests
       uses: azure/k8s-deploy@v4
       with:
         namespace: stirling-pdf
         manifests: |
-          k8s/namespace.yaml
-          k8s/configmap-backend.yaml
-          k8s/configmap-frontend.yaml
-          k8s/deployment-backend.yaml
-          k8s/deployment-frontend.yaml
-          k8s/service-backend.yaml
-          k8s/service-frontend.yaml
-          k8s/hpa-backend.yaml
-          k8s/hpa-frontend.yaml
+          ${{ github.workspace }}/k8s/namespace.yaml
+          ${{ github.workspace }}/k8s/configmap-backend.yaml
+          ${{ github.workspace }}/k8s/configmap-frontend.yaml
+          ${{ github.workspace }}/k8s/deployment-backend.yaml
+          ${{ github.workspace }}/k8s/deployment-frontend.yaml
+          ${{ github.workspace }}/k8s/service-backend.yaml
+          ${{ github.workspace }}/k8s/service-frontend.yaml
+          ${{ github.workspace }}/k8s/hpa-backend.yaml
+          ${{ github.workspace }}/k8s/hpa-frontend.yaml
+        #- name: Deploy manifests
+    #  uses: azure/k8s-deploy@v4
+    #  with:
+    #    namespace: stirling-pdf
+    #    manifests: |
+    #      k8s/namespace.yaml
+    #      k8s/configmap-backend.yaml
+    #      k8s/configmap-frontend.yaml
+    #      k8s/deployment-backend.yaml
+    #      k8s/deployment-frontend.yaml
+    #      k8s/service-backend.yaml
+    #      k8s/service-frontend.yaml
+    #      k8s/hpa-backend.yaml
+    #      k8s/hpa-frontend.yaml
 
     - name: Remove Runner IP from AKS API Server
       if: always()

@@ -57,3 +57,5 @@ resource "azurerm_role_assignment" "aks_key_vault_access" {
   role_definition_name = "Key Vault Crypto Service Encryption User"
   scope                = module.key_vault.key_vault_id
 }
+
+#test trigger
