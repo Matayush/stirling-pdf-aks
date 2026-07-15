@@ -155,14 +155,14 @@ jobs:
         resource-group: ${{ steps.env.outputs.resource_group }}
         cluster-name: ${{ steps.env.outputs.cluster_name }}
 
-    - name: Debug workspace
-      run: |
-        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-        pwd
-        ls -la
-        ls -la k8s
-        test -f "$GITHUB_WORKSPACE/k8s/hpa-backend.yaml" && echo "found hpa-backend"
-        test -f "$GITHUB_WORKSPACE/k8s/hpa-frontend.yaml" && echo "found hpa-frontend"
+    #- name: Debug workspace
+    #  run: |
+    #    echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+    #    pwd
+    #    ls -la
+    #    ls -la k8s
+    #    test -f "$GITHUB_WORKSPACE/k8s/hpa-backend.yaml" && echo "found hpa-backend"
+    #    test -f "$GITHUB_WORKSPACE/k8s/hpa-frontend.yaml" && echo "found hpa-frontend"
 
     - name: Deploy manifests
       uses: azure/k8s-deploy@v4
