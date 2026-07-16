@@ -45,6 +45,13 @@ jobs:
       resource_group: ${{ steps.env.outputs.resource_group }}
       kv_name: ${{ steps.env.outputs.kv_name }}
       tf_state_key: ${{ steps.env.outputs.tf_state_key }}
+      cluster_name: ${{ steps.env.outputs.cluster_name }}
+      acr_name: ${{ steps.env.outputs.acr_name }}
+      namespace: ${{ steps.env.outputs.namespace }}
+      overlay_path: ${{ steps.env.outputs.overlay_path }}
+      cluster_path: ${{ steps.env.outputs.cluster_path }}
+      deploy_enabled: ${{ steps.env.outputs.deploy_enabled }}
+
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -59,7 +66,7 @@ jobs:
         
     # Selects the correct Terraform state file based on the branch that triggered the workflow. 
     # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
-    - name: Set backend key and environment
+    - name: Set environment context
       id: env
       run: |
         if [[ "${{ github.ref_name }}" == "dev" ]]; then
@@ -68,18 +75,33 @@ jobs:
           echo "resource_group=rg-stirling-dev" >> $GITHUB_OUTPUT
           echo "kv_name=kv-stirlingdev"        >> $GITHUB_OUTPUT
           echo "cluster_name=aks-dev"                 >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingdev" >> $GITHUB_OUTPUT
+          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
+          echo "overlay-path=k8s/apps/stirling-pdf/overlays/dev" >> $GITHUB_OUTPUT
+          echo "cluster_path=k8s/clusters/aks-dev" >> $GITHUB_OUTPUT
+          echo "deploy_enabled=false" >> $GITHUB_OUTPUT
         elif [[ "${{ github.ref_name }}" == "test" ]]; then 
           echo "tf_state_key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=test" >> $GITHUB_OUTPUT
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
           echo "kv_name=kv-stirlingtest"        >> $GITHUB_OUTPUT
           echo "cluster_name=aks-test"                 >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingtest" >> $GITHUB_OUTPUT
+          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
+          echo "overlay-path=k8s/apps/stirling-pdf/overlays/test" >> $GITHUB_OUTPUT
+          echo "cluster_path=k8s/clusters/aks-test" >> $GITHUB_OUTPUT
+          echo "deploy_enabled=true" >> $GITHUB_OUTPUT
         else 
           echo "tf_state_key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
           echo "environment=prod" >> $GITHUB_OUTPUT
           echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
           echo "kv_name=kv-stirlingprod"        >> $GITHUB_OUTPUT
           echo "cluster_name=aks-prod"                 >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingprod" >> $GITHUB_OUTPUT
+          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
+          echo "overlay-path=k8s/apps/stirling-pdf/overlays/prod" >> $GITHUB_OUTPUT
+          echo "cluster_path=k8s/clusters/aks-prod" >> $GITHUB_OUTPUT
+          echo "deploy_enabled=true" >> $GITHUB_OUTPUT
         fi
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
