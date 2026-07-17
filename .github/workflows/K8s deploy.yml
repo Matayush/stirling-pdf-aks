@@ -1,7 +1,7 @@
 name: 'K8s Deploy'
 
 concurrency:
-  group: k8s-${{ github.ref_name }}
+  group: k8s-${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 on:
@@ -50,11 +50,11 @@ jobs:
       
         if [[ "$ENVIRONMENT" == "prod" ]]; then
           echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
-          echo "acr_name=stirlingprod" >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingprod" >> $GITHUB_OUTPUT
           echo "cluster_name=aks-prod" >> $GITHUB_OUTPUT
         else
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
-          echo "acr_name=stirlingtest" >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingtest" >> $GITHUB_OUTPUT
           echo "cluster_name=aks-test" >> $GITHUB_OUTPUT
         fi
 
@@ -107,11 +107,11 @@ jobs:
 
         if [[ "$ENVIRONMENT" == "prod" ]]; then
           echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
-          echo "acr_name=stirlingprod" >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingprod" >> $GITHUB_OUTPUT
           echo "cluster_name=aks-prod" >> $GITHUB_OUTPUT
         else
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
-          echo "acr_name=stirlingtest" >> $GITHUB_OUTPUT
+          echo "acr_name=acrstirlingtest" >> $GITHUB_OUTPUT
           echo "cluster_name=aks-test" >> $GITHUB_OUTPUT
         fi
 
