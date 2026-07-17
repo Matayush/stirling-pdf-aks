@@ -4,7 +4,7 @@ name: 'Terraform Plan/Apply'
 # This prevents Terraform state lock conflicts, avoids parallel plan/apply collisions, 
 # and automatically cancels older runs when new commits arrive on the same branch.
 concurrency:
-  group: terraform-${{ github.ref_name }}
+  group: terraform-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
@@ -69,40 +69,50 @@ jobs:
     - name: Set environment context
       id: env
       run: |
-        if [[ "${{ github.ref_name }}" == "dev" ]]; then
-          echo "tf_state_key=stirling-pdf-dev.tfstate" >> $GITHUB_OUTPUT  
-          echo "environment=dev" >> $GITHUB_OUTPUT
-          echo "resource_group=rg-stirling-dev" >> $GITHUB_OUTPUT
-          echo "kv_name=kv-stirlingdev"        >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-dev"                 >> $GITHUB_OUTPUT
-          echo "acr_name=acrstirlingdev" >> $GITHUB_OUTPUT
-          echo "namespace=stirling-pdf" >> $GITHUB_OUTPUT
-          echo "overlay-path=k8s/apps/stirling-pdf/overlays/dev" >> $GITHUB_OUTPUT
-          echo "cluster_path=k8s/clusters/aks-dev" >> $GITHUB_OUTPUT
-          echo "deploy_enabled=false" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.ref_name }}" == "test" ]]; then 
-          echo "tf_state_key=stirling-pdf-test.tfstate" >> $GITHUB_OUTPUT 
-          echo "environment=test" >> $GITHUB_OUTPUT
-          echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
-          echo "kv_name=kv-stirlingtest"        >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-test"                 >> $GITHUB_OUTPUT
-          echo "acr_name=acrstirlingtest" >> $GITHUB_OUTPUT
-          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
-          echo "overlay-path=k8s/apps/stirling-pdf/overlays/test" >> $GITHUB_OUTPUT
-          echo "cluster_path=k8s/clusters/aks-test" >> $GITHUB_OUTPUT
-          echo "deploy_enabled=true" >> $GITHUB_OUTPUT
-        else 
-          echo "tf_state_key=stirling-pdf-prod.tfstate" >> $GITHUB_OUTPUT 
-          echo "environment=prod" >> $GITHUB_OUTPUT
-          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
-          echo "kv_name=kv-stirlingprod"        >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-prod"                 >> $GITHUB_OUTPUT
-          echo "acr_name=acrstirlingprod" >> $GITHUB_OUTPUT
-          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
-          echo "overlay-path=k8s/apps/stirling-pdf/overlays/prod" >> $GITHUB_OUTPUT
-          echo "cluster_path=k8s/clusters/aks-prod" >> $GITHUB_OUTPUT
-          echo "deploy_enabled=true" >> $GITHUB_OUTPUT
-        fi
+        BRANCH="${{ github.head_ref || github.ref_name }}"
+        
+        case "$BRANCH" in
+          dev)
+            echo "tf_state_key=stirling-pdf-dev.tfstate" >> "$GITHUB_OUTPUT"
+            echo "environment=dev" >> "$GITHUB_OUTPUT"
+            echo "resource_group=rg-stirling-dev" >> "$GITHUB_OUTPUT"
+            echo "kv_name=kv-stirlingdev" >> "$GITHUB_OUTPUT"
+            echo "cluster_name=aks-dev" >> "$GITHUB_OUTPUT"
+            echo "acr_name=acrstirlingdev" >> "$GITHUB_OUTPUT"
+            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+            echo "overlay_path=k8s/apps/stirling-pdf/overlays/dev" >> "$GITHUB_OUTPUT"
+            echo "cluster_path=k8s/clusters/aks-dev" >> "$GITHUB_OUTPUT"
+            echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
+            ;;
+          test)
+            echo "tf_state_key=stirling-pdf-test.tfstate" >> "$GITHUB_OUTPUT"
+            echo "environment=test" >> "$GITHUB_OUTPUT"
+            echo "resource_group=rg-stirling-test" >> "$GITHUB_OUTPUT"
+            echo "kv_name=kv-stirlingtest" >> "$GITHUB_OUTPUT"
+            echo "cluster_name=aks-test" >> "$GITHUB_OUTPUT"
+            echo "acr_name=acrstirlingtest" >> "$GITHUB_OUTPUT"
+            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+            echo "overlay_path=k8s/apps/stirling-pdf/overlays/test" >> "$GITHUB_OUTPUT"
+            echo "cluster_path=k8s/clusters/aks-test" >> "$GITHUB_OUTPUT"
+            echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
+            ;;
+          main)
+            echo "tf_state_key=stirling-pdf-prod.tfstate" >> "$GITHUB_OUTPUT"
+            echo "environment=prod" >> "$GITHUB_OUTPUT"
+            echo "resource_group=rg-stirling-prod" >> "$GITHUB_OUTPUT"
+            echo "kv_name=kv-stirlingprod" >> "$GITHUB_OUTPUT"
+            echo "cluster_name=aks-prod" >> "$GITHUB_OUTPUT"
+            echo "acr_name=acrstirlingprod" >> "$GITHUB_OUTPUT"
+            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+            echo "overlay_path=k8s/apps/stirling-pdf/overlays/prod" >> "$GITHUB_OUTPUT"
+            echo "cluster_path=k8s/clusters/aks-prod" >> "$GITHUB_OUTPUT"
+            echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "Unsupported branch: $BRANCH. Only dev, test, and main branches are supported."
+            exit 1
+            ;;
+        esac
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -115,7 +125,7 @@ jobs:
 
     - name: Get Runner IP
       id: runner-ip
-      run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+      run: echo "ip=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
 
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
@@ -154,7 +164,7 @@ jobs:
           -var "resource_group_name=${{ steps.env.outputs.resource_group }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
-        echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+        echo "exitcode=$exitcode" >> "$GITHUB_OUTPUT"
         
         if [ $exitcode -eq 1 ]; then
           echo Terraform Plan Failed!
@@ -166,19 +176,20 @@ jobs:
     # Create string output of Terraform Plan
     - name: Create String Output
       id: tf-plan-string
+      if: steps.tf-plan.outputs.exitcode == '2'
       run: |
         TERRAFORM_PLAN=$(terraform show -no-color tfplan)
         
         delimiter="$(openssl rand -hex 8)"
-        echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
-        echo "## Terraform Plan Output" >> $GITHUB_OUTPUT
-        echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo '```terraform' >> $GITHUB_OUTPUT
-        echo "$TERRAFORM_PLAN" >> $GITHUB_OUTPUT
-        echo '```' >> $GITHUB_OUTPUT
-        echo "</details>" >> $GITHUB_OUTPUT
-        echo "${delimiter}" >> $GITHUB_OUTPUT
+        echo "summary<<${delimiter}" >> "$GITHUB_OUTPUT"
+        echo "## Terraform Plan Output" >> "$GITHUB_OUTPUT"
+        echo "<details><summary>Click to expand</summary>" >> "$GITHUB_OUTPUT"
+        echo "" >> "$GITHUB_OUTPUT"
+        echo '```terraform' >> "$GITHUB_OUTPUT"
+        echo "$TERRAFORM_PLAN" >> "$GITHUB_OUTPUT"
+        echo '```' >> "$GITHUB_OUTPUT"
+        echo "</details>" >> "$GITHUB_OUTPUT"
+        echo "${delimiter}" >> "$GITHUB_OUTPUT"
         
     # Publish Terraform Plan as task summary
     #- name: Publish Terraform Plan to Task Summary
@@ -188,7 +199,7 @@ jobs:
       
     # If this is a PR post the changes
     - name: Push Terraform Output to PR
-      if: github.event_name == 'pull_request' 
+      if: github.event_name == 'pull_request' && steps.tf-plan.outputs.exitcode == '2' 
       uses: actions/github-script@v7 
       env: 
         SUMMARY: "${{ steps.tf-plan-string.outputs.summary }}" 
@@ -247,7 +258,7 @@ jobs:
   
   terraform-apply:
     name: 'Terraform Apply'
-    if: needs.terraform-plan.outputs.tfplanExitCode == '2' && (github.ref_name == 'main' || github.ref_name == 'test')
+    if: github.event_name == 'push' && needs.terraform-plan.outputs.tfplanExitCode == '2' && (github.ref_name == 'main' || github.ref_name == 'test')
     runs-on: ubuntu-latest
     environment: ${{ needs.terraform-plan.outputs.environment }}
     needs: [terraform-plan]
@@ -274,7 +285,7 @@ jobs:
     
     - name: Get Runner IP
       id: runner-ip
-      run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+      run: echo "ip=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
     
     #  Merge runner IP into TF_VAR_allowed_ips BEFORE any apply ──
     # This prevents drift — Terraform owns the runner IP from the start  
@@ -283,7 +294,7 @@ jobs:
         RUNNER_IP="${{ steps.runner-ip.outputs.ip }}/32"
         STATIC_IPS='${{ vars.ALLOWED_IPS }}'
         COMBINED=$(echo "$STATIC_IPS" | jq -c --arg ip "$RUNNER_IP" '. + [$ip]')
-        echo "TF_VAR_allowed_ips=$COMBINED" >> $GITHUB_ENV
+        echo "TF_VAR_allowed_ips=$COMBINED" >> "$GITHUB_ENV"
         echo "Combined IPs: $COMBINED"
 
     # Create KV first so whitelist step always has something to target
