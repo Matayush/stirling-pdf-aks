@@ -37,16 +37,25 @@ jobs:
     - name: Set environment
       id: env
       run: |
-        if [[ "${{ github.ref_name }}" == "main" ]]; then
-          echo "environment=prod"                 >> $GITHUB_OUTPUT
-          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
-          echo "acr_name=acrstirlingprod"        >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-prod"           >> $GITHUB_OUTPUT
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          ENVIRONMENT="${{ inputs.environment }}"
+        elif [[ "${{ github.ref_name }}" == "main" ]]; then
+          ENVIRONMENT="prod"
         else
-          echo "environment=test"                 >> $GITHUB_OUTPUT
+          ENVIRONMENT="test"
+        fi
+        
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        echo "overlay_path=k8s/apps/stirling-pdf/overlays/$ENVIRONMENT" >> $GITHUB_OUTPUT
+      
+        if [[ "$ENVIRONMENT" == "prod" ]]; then
+          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
+          echo "acr_name=stirlingprod" >> $GITHUB_OUTPUT
+          echo "cluster_name=aks-prod" >> $GITHUB_OUTPUT
+        else
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
-          echo "acr_name=acrstirlingtest"        >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-test"           >> $GITHUB_OUTPUT
+          echo "acr_name=stirlingtest" >> $GITHUB_OUTPUT
+          echo "cluster_name=aks-test" >> $GITHUB_OUTPUT
         fi
 
     - name: Azure Login
@@ -75,7 +84,8 @@ jobs:
     name: 'Deploy to AKS'
     needs: [import-images]
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'main' && 'prod' || 'test' }}
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'prod' || 'test') }}
 
     steps:
     - name: Checkout
@@ -84,14 +94,25 @@ jobs:
     - name: Set environment
       id: env
       run: |
-        if [[ "${{ github.ref_name }}" == "main" ]]; then
-          echo "environment=prod"                 >> $GITHUB_OUTPUT
-          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-prod"           >> $GITHUB_OUTPUT
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          ENVIRONMENT="${{ inputs.environment }}"
+        elif [[ "${{ github.ref_name }}" == "main" ]]; then
+          ENVIRONMENT="prod"
         else
-          echo "environment=test"                 >> $GITHUB_OUTPUT
+          ENVIRONMENT="test"
+        fi
+        
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        echo "overlay_path=k8s/apps/stirling-pdf/overlays/$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+        if [[ "$ENVIRONMENT" == "prod" ]]; then
+          echo "resource_group=rg-stirling-prod" >> $GITHUB_OUTPUT
+          echo "acr_name=stirlingprod" >> $GITHUB_OUTPUT
+          echo "cluster_name=aks-prod" >> $GITHUB_OUTPUT
+        else
           echo "resource_group=rg-stirling-test" >> $GITHUB_OUTPUT
-          echo "cluster_name=aks-test"           >> $GITHUB_OUTPUT
+          echo "acr_name=stirlingtest" >> $GITHUB_OUTPUT
+          echo "cluster_name=aks-test" >> $GITHUB_OUTPUT
         fi
 
     - name: Azure Login
@@ -163,21 +184,18 @@ jobs:
     #    ls -la k8s
     #    test -f "$GITHUB_WORKSPACE/k8s/hpa-backend.yaml" && echo "found hpa-backend"
     #    test -f "$GITHUB_WORKSPACE/k8s/hpa-frontend.yaml" && echo "found hpa-frontend"
+    
+    - name: Validate Kustomize overlay
+      run: |
+        echo "Validating Kustomize overlay for environment: ${{ steps.env.outputs.overlay_path}}"
+        kubectl kustomize "${{ steps.env.outputs.overlay_path }}" > /tmp/rendered.yaml
+        test -s /tmp/rendered.yaml
+        echo "Kustomize overlay validation successful."
 
-    - name: Deploy manifests
-      uses: azure/k8s-deploy@v4
-      with:
-        namespace: stirling-pdf
-        manifests: |
-          ${{ github.workspace }}/k8s/namespace.yaml
-          ${{ github.workspace }}/k8s/configmap-backend.yaml
-          ${{ github.workspace }}/k8s/configmap-frontend.yaml
-          ${{ github.workspace }}/k8s/deployment-backend.yaml
-          ${{ github.workspace }}/k8s/deployment-frontend.yaml
-          ${{ github.workspace }}/k8s/service-backend.yaml
-          ${{ github.workspace }}/k8s/service-frontend.yaml
-          ${{ github.workspace }}/k8s/hpa-backend.yaml
-          ${{ github.workspace }}/k8s/hpa-frontend.yaml
+    - name: Deploy Kustomize overlay to AKS
+      run: |
+        kubectl apply -k "${{ steps.env.outputs.overlay_path }}"
+      
         #- name: Deploy manifests
     #  uses: azure/k8s-deploy@v4
     #  with:

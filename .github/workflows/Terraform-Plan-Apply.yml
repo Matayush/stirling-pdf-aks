@@ -76,7 +76,7 @@ jobs:
           echo "kv_name=kv-stirlingdev"        >> $GITHUB_OUTPUT
           echo "cluster_name=aks-dev"                 >> $GITHUB_OUTPUT
           echo "acr_name=acrstirlingdev" >> $GITHUB_OUTPUT
-          echo "namespace"=stirling-pdf" >> $GITHUB_OUTPUT
+          echo "namespace=stirling-pdf" >> $GITHUB_OUTPUT
           echo "overlay-path=k8s/apps/stirling-pdf/overlays/dev" >> $GITHUB_OUTPUT
           echo "cluster_path=k8s/clusters/aks-dev" >> $GITHUB_OUTPUT
           echo "deploy_enabled=false" >> $GITHUB_OUTPUT
