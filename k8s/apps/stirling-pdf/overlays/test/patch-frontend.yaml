@@ -1,0 +1,7 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stirling-pdf-frontend
+  namespace: stirling-pdf
+spec:
+  replicas: 1
