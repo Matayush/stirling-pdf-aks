@@ -20,17 +20,19 @@ on:
       - '.github/workflows/terraform.yml'
 # Permissions required for Terraform CI/CD using a Service Principal.
 permissions:
+  id-token: write
   contents: read
   pull-requests: write
   security-events: write
 
 # Environment variables used by the AzureRM Terraform provider to authenticate using a Service Principal
 env:
+  ARM_USE_OIDC: true
   ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
-  ARM_CLIENT_SECRET: "${{ secrets.ARM_CLIENT_SECRET }}"
   ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
   ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
   TF_VAR_allowed_ips: ${{ vars.ALLOWED_IPS }}
+  
 
 jobs:
   # This custom exit-code handling is needed since the plan job runs with 
@@ -114,14 +116,16 @@ jobs:
             ;;
         esac
         
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      run: terraform init -backend-config="key=${{ steps.env.outputs.tf_state_key }}"
-
     - name: Azure Login
       uses:  azure/login@v2
       with:
-          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init -backend-config="key=${{ steps.env.outputs.tf_state_key }}"
 
     - name: Get Runner IP
       id: runner-ip
@@ -274,15 +278,17 @@ jobs:
       with:
         terraform_wrapper: false
 
+    - name: Azure Login
+      uses:  azure/login@v2
+      with:
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.tf_state_key }}"
 
-    - name: Azure Login
-      uses:  azure/login@v2
-      with:
-          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'  
-    
     - name: Get Runner IP
       id: runner-ip
       run: echo "ip=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
