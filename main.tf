@@ -58,4 +58,4 @@ resource "azurerm_role_assignment" "aks_key_vault_access" {
   scope                = module.key_vault.key_vault_id
 }
 
-#test trigger
+#test 
