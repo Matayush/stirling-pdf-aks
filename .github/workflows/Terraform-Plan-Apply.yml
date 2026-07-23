@@ -20,38 +20,98 @@ on:
       - '.github/workflows/terraform.yml'
 # Permissions required for Terraform CI/CD using a Service Principal.
 permissions:
+  id-token: write
   contents: read
   pull-requests: write
   security-events: write
 
 # Environment variables used by the AzureRM Terraform provider to authenticate using a Service Principal
 env:
+  ARM_USE_OIDC: true
   ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
-  ARM_CLIENT_SECRET: "${{ secrets.ARM_CLIENT_SECRET }}"
   ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
   ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
   TF_VAR_allowed_ips: ${{ vars.ALLOWED_IPS }}
+  
 
 jobs:
+  # Selects the correct Terraform state file based on the branch that triggered the workflow. 
+  # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
+  set-context:
+      name: Set environment context
+      runs-on: ubuntu-latest
+      outputs:
+        environment: ${{ steps.env.outputs.environment }}
+        resource_group: ${{ steps.env.outputs.resource_group }}
+        tf_state_key: ${{ steps.env.outputs.tf_state_key }}
+        kv_name: ${{ steps.env.outputs.kv_name }}
+        cluster_name: ${{ steps.env.outputs.cluster_name }}
+        acr_name: ${{ steps.env.outputs.acr_name }}
+        namespace: ${{ steps.env.outputs.namespace }}
+        overlay_path: ${{ steps.env.outputs.overlay_path }}
+        cluster_path: ${{ steps.env.outputs.cluster_path }}
+        deploy_enabled: ${{ steps.env.outputs.deploy_enabled }}
+      steps:
+        - name: Set environment variables
+          id: env
+          run: |
+            BRANCH="${{ github.head_ref || github.ref_name }}"
+        
+            case "$BRANCH" in
+              dev)
+                echo "tf_state_key=stirling-pdf-dev.tfstate" >> "$GITHUB_OUTPUT"
+                echo "environment=dev" >> "$GITHUB_OUTPUT"
+                echo "resource_group=rg-stirling-dev" >> "$GITHUB_OUTPUT"
+                echo "kv_name=kv-stirlingdev" >> "$GITHUB_OUTPUT"
+                echo "cluster_name=aks-dev" >> "$GITHUB_OUTPUT"
+                echo "acr_name=acrstirlingdev" >> "$GITHUB_OUTPUT"
+                echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+                echo "overlay_path=k8s/apps/stirling-pdf/overlays/dev" >> "$GITHUB_OUTPUT"
+                echo "cluster_path=k8s/clusters/aks-dev" >> "$GITHUB_OUTPUT"
+                echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
+                ;;
+              test)
+                echo "tf_state_key=stirling-pdf-test.tfstate" >> "$GITHUB_OUTPUT"
+                echo "environment=test" >> "$GITHUB_OUTPUT"
+                echo "resource_group=rg-stirling-test" >> "$GITHUB_OUTPUT"
+                echo "kv_name=kv-stirlingtest" >> "$GITHUB_OUTPUT"
+                echo "cluster_name=aks-test" >> "$GITHUB_OUTPUT"
+                echo "acr_name=acrstirlingtest" >> "$GITHUB_OUTPUT"
+                echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+                echo "overlay_path=k8s/apps/stirling-pdf/overlays/test" >> "$GITHUB_OUTPUT"
+                echo "cluster_path=k8s/clusters/aks-test" >> "$GITHUB_OUTPUT"
+                echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
+                ;;
+              main)
+                echo "tf_state_key=stirling-pdf-prod.tfstate" >> "$GITHUB_OUTPUT"
+                echo "environment=prod" >> "$GITHUB_OUTPUT"
+                echo "resource_group=rg-stirling-prod" >> "$GITHUB_OUTPUT"
+                echo "kv_name=kv-stirlingprod" >> "$GITHUB_OUTPUT"
+                echo "cluster_name=aks-prod" >> "$GITHUB_OUTPUT"
+                echo "acr_name=acrstirlingprod" >> "$GITHUB_OUTPUT"
+                echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
+                echo "overlay_path=k8s/apps/stirling-pdf/overlays/prod" >> "$GITHUB_OUTPUT"
+                echo "cluster_path=k8s/clusters/aks-prod" >> "$GITHUB_OUTPUT"
+                echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
+                ;;
+                *)
+              echo "Unsupported branch: $BRANCH"
+              exit 1
+              ;;
+            esac
+          
   # This custom exit-code handling is needed since the plan job runs with 
   # read-only permissions, allowing us to safely pass the results to the apply job.
   terraform-plan:
     name: 'Terraform Plan'
     runs-on: ubuntu-latest
+    needs: set-context
+    environment: 
+      name: ${{ needs.set-context.outputs.environment }}
     timeout-minutes: 20
     outputs:
       tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
-      environment: ${{ steps.env.outputs.environment }}
-      resource_group: ${{ steps.env.outputs.resource_group }}
-      kv_name: ${{ steps.env.outputs.kv_name }}
-      tf_state_key: ${{ steps.env.outputs.tf_state_key }}
-      cluster_name: ${{ steps.env.outputs.cluster_name }}
-      acr_name: ${{ steps.env.outputs.acr_name }}
-      namespace: ${{ steps.env.outputs.namespace }}
-      overlay_path: ${{ steps.env.outputs.overlay_path }}
-      cluster_path: ${{ steps.env.outputs.cluster_path }}
-      deploy_enabled: ${{ steps.env.outputs.deploy_enabled }}
-
+      
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -64,64 +124,16 @@ jobs:
       with:
         terraform_wrapper: false
         
-    # Selects the correct Terraform state file based on the branch that triggered the workflow. 
-    # This keeps dev, test, and prod environments isolated while using a single shared backend configuration. 
-    - name: Set environment context
-      id: env
-      run: |
-        BRANCH="${{ github.head_ref || github.ref_name }}"
-        
-        case "$BRANCH" in
-          dev)
-            echo "tf_state_key=stirling-pdf-dev.tfstate" >> "$GITHUB_OUTPUT"
-            echo "environment=dev" >> "$GITHUB_OUTPUT"
-            echo "resource_group=rg-stirling-dev" >> "$GITHUB_OUTPUT"
-            echo "kv_name=kv-stirlingdev" >> "$GITHUB_OUTPUT"
-            echo "cluster_name=aks-dev" >> "$GITHUB_OUTPUT"
-            echo "acr_name=acrstirlingdev" >> "$GITHUB_OUTPUT"
-            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
-            echo "overlay_path=k8s/apps/stirling-pdf/overlays/dev" >> "$GITHUB_OUTPUT"
-            echo "cluster_path=k8s/clusters/aks-dev" >> "$GITHUB_OUTPUT"
-            echo "deploy_enabled=false" >> "$GITHUB_OUTPUT"
-            ;;
-          test)
-            echo "tf_state_key=stirling-pdf-test.tfstate" >> "$GITHUB_OUTPUT"
-            echo "environment=test" >> "$GITHUB_OUTPUT"
-            echo "resource_group=rg-stirling-test" >> "$GITHUB_OUTPUT"
-            echo "kv_name=kv-stirlingtest" >> "$GITHUB_OUTPUT"
-            echo "cluster_name=aks-test" >> "$GITHUB_OUTPUT"
-            echo "acr_name=acrstirlingtest" >> "$GITHUB_OUTPUT"
-            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
-            echo "overlay_path=k8s/apps/stirling-pdf/overlays/test" >> "$GITHUB_OUTPUT"
-            echo "cluster_path=k8s/clusters/aks-test" >> "$GITHUB_OUTPUT"
-            echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
-            ;;
-          main)
-            echo "tf_state_key=stirling-pdf-prod.tfstate" >> "$GITHUB_OUTPUT"
-            echo "environment=prod" >> "$GITHUB_OUTPUT"
-            echo "resource_group=rg-stirling-prod" >> "$GITHUB_OUTPUT"
-            echo "kv_name=kv-stirlingprod" >> "$GITHUB_OUTPUT"
-            echo "cluster_name=aks-prod" >> "$GITHUB_OUTPUT"
-            echo "acr_name=acrstirlingprod" >> "$GITHUB_OUTPUT"
-            echo "namespace=stirling-pdf" >> "$GITHUB_OUTPUT"
-            echo "overlay_path=k8s/apps/stirling-pdf/overlays/prod" >> "$GITHUB_OUTPUT"
-            echo "cluster_path=k8s/clusters/aks-prod" >> "$GITHUB_OUTPUT"
-            echo "deploy_enabled=true" >> "$GITHUB_OUTPUT"
-            ;;
-          *)
-            echo "Unsupported branch: $BRANCH. Only dev, test, and main branches are supported."
-            exit 1
-            ;;
-        esac
-        
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      run: terraform init -backend-config="key=${{ steps.env.outputs.tf_state_key }}"
-
     - name: Azure Login
       uses:  azure/login@v2
       with:
-          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init -backend-config="key=${{ needs.set-context.outputs.tf_state_key }}"
 
     - name: Get Runner IP
       id: runner-ip
@@ -130,8 +142,8 @@ jobs:
     # Temporarily whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     - name: Whitelist Runner IP on Key Vault
       run: |
-        KEYVAULT_NAME="${{ steps.env.outputs.kv_name }}"
-        RESOURCE_GROUP="${{ steps.env.outputs.resource_group }}"
+        KEYVAULT_NAME="${{ needs.set-context.outputs.kv_name }}"
+        RESOURCE_GROUP="${{ needs.set-context.outputs.resource_group }}"
 
         if [ -n "$KEYVAULT_NAME" ] && az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
           echo "Key Vault found — adding runner IP to network rules"
@@ -159,9 +171,9 @@ jobs:
         export exitcode=0
         terraform plan \
           -lock-timeout=5m \
-          -var "environment=${{ steps.env.outputs.environment }}" \
+          -var "environment=${{ needs.set-context.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ steps.env.outputs.resource_group }}" \
+          -var "resource_group_name=${{ needs.set-context.outputs.resource_group }}" \
           -detailed-exitcode -no-color -out tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> "$GITHUB_OUTPUT"
@@ -218,8 +230,8 @@ jobs:
     - name: Remove Runner IP from Key Vault
       if: always()   # ensure we remove the IP even if previous steps fail
       run: |
-        KEYVAULT_NAME="${{ steps.env.outputs.kv_name }}"
-        RESOURCE_GROUP="${{ steps.env.outputs.resource_group }}"
+        KEYVAULT_NAME="${{ needs.set-context.outputs.kv_name }}"
+        RESOURCE_GROUP="${{ needs.set-context.outputs.resource_group }}"
 
         if [ -n "$KEYVAULT_NAME" ] && az keyvault show --name "$KEYVAULT_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
           echo "Removing runner IP from Key Vault network rules"
@@ -258,10 +270,11 @@ jobs:
   
   terraform-apply:
     name: 'Terraform Apply'
-    if: github.event_name == 'push' && needs.terraform-plan.outputs.tfplanExitCode == '2' && (github.ref_name == 'main' || github.ref_name == 'test')
+    if: github.event_name == 'push' && needs.terraform-plan.outputs.tfplanExitCode == '2' && needs.set-context.outputs.deploy_enabled == 'true'
     runs-on: ubuntu-latest
-    environment: ${{ needs.terraform-plan.outputs.environment }}
-    needs: [terraform-plan]
+    environment: 
+      name: ${{ needs.set-context.outputs.environment }}
+    needs: [terraform-plan, set-context]
     
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -274,15 +287,17 @@ jobs:
       with:
         terraform_wrapper: false
 
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      run: terraform init -backend-config="key=${{ needs.terraform-plan.outputs.tf_state_key }}"
-
     - name: Azure Login
       uses:  azure/login@v2
       with:
-          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'  
-    
+        client-id: ${{ secrets.ARM_CLIENT_ID }}
+        tenant-id: ${{ secrets.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init -backend-config="key=${{ needs.set-context.outputs.tf_state_key }}"
+
     - name: Get Runner IP
       id: runner-ip
       run: echo "ip=$(curl -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
@@ -304,16 +319,16 @@ jobs:
           -auto-approve \
           -lock-timeout=5m \
           -target=module.key_vault.azurerm_key_vault.key_vault \
-          -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+          -var "environment=${{ needs.set-context.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" 
+          -var "resource_group_name=${{ needs.set-context.outputs.resource_group }}" 
         
     # Whitelist the GitHub Actions runner IP on the Key Vault network ACL.
     #- name: Whitelist Runner IP on Key Vault
     #  run: |
     #    az keyvault network-rule add \
-    #    --name "${{ needs.terraform-plan.outputs.kv_name }}" \
-    #    --resource-group "${{ needs.terraform-plan.outputs.resource_group }}" \
+    #    --name "${{ needs.set-context.outputs.kv_name }}" \
+    #    --resource-group "${{ needs.set-context.outputs.resource_group }}" \
     #    --ip-address "${{ steps.runner-ip.outputs.ip }}"
 
     # Re-plan with this job's runner IP in allowed_ips.
@@ -321,9 +336,9 @@ jobs:
       run: | 
         terraform plan \
           -lock-timeout=5m \
-          -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+          -var "environment=${{ needs.set-context.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}" \
+          -var "resource_group_name=${{ needs.set-context.outputs.resource_group }}" \
           -no-color -out tfplan_apply
     
     # Terraform Apply
@@ -340,7 +355,7 @@ jobs:
       run: |
         terraform apply -auto-approve -lock-timeout=5m \
           -target=module.key_vault.azurerm_key_vault.key_vault \
-          -var "environment=${{ needs.terraform-plan.outputs.environment }}" \
+          -var "environment=${{ needs.set-context.outputs.environment }}" \
           -var "location=${{ vars.location }}" \
-          -var "resource_group_name=${{ needs.terraform-plan.outputs.resource_group }}"
+          -var "resource_group_name=${{ needs.set-context.outputs.resource_group }}"
         echo "KV locked down — runner IP removed from ip_rules"    
